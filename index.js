@@ -39,25 +39,25 @@ function Database(filename) {
 
 /*
 	Write data to database
-	@obj {Object}
-	@fnCallback {Function} :: optional, params: @err {Error}, @obj {Object}
+	@doc {Object}
+	@fnCallback {Function} :: optional, params: @err {Error}, @doc {Object}
 	return {Database}
 */
-Database.prototype.write = function(obj, fnCallback) {
+Database.prototype.write = function(doc, fnCallback) {
 
 	var self = this;
 
 	if (self.isLocked) {
 		self.pending.push(function() {
-			self.write(obj, fnCallback);
+			self.write(doc, fnCallback);
 		});
 		return self;
 	}
 
 	self.isLocked = true;
-	fs.appendFile(self.filename, JSON.stringify(obj) + '\n', { encoding: encoding }, function(err) {
+	fs.appendFile(self.filename, JSON.stringify(doc) + '\n', { encoding: encoding }, function(err) {
 		self.isLocked = false;
-		fnCallback && fnCallback(err, obj);
+		fnCallback && fnCallback(err, doc);
 		self.next();
 	});
 
@@ -142,7 +142,7 @@ Database.prototype.readValue = function(data, fnFilter, fnCallback) {
 
 /*
 	Read data from database
-	@fnFilter {Function} :: params: @obj {Object}, return TRUE | FALSE
+	@fnFilter {Function} :: params: @doc {Object}, return TRUE | FALSE
 	@fnCallback {Function} :: params: @err {Error}, @selected {Array of Object}
 	@itemSkip {Number} :: optional
 	@itemTake {Number} :: optional
@@ -213,7 +213,7 @@ Database.prototype.read = function(fnFilter, fnCallback, itemSkip, itemTake, isS
 
 /*
 	Read data from database
-	@fnCallback {Function} :: params: @err {Error}, @obj {Object}, @offset {Number}
+	@fnCallback {Function} :: params: @err {Error}, @doc {Object}, @offset {Number}
 	return {Database}
 */
 Database.prototype.each = function(fnCallback) {
@@ -263,7 +263,7 @@ Database.prototype.each = function(fnCallback) {
 /*
 	Read data from database
 	@fnFilter {Function} :: must return {Boolean};
-	@fnCallback {Function} :: params: @err {Error}, @obj {Array of Object}
+	@fnCallback {Function} :: params: @err {Error}, @doc {Array of Object}
 	@itemSkip {Number} :: optional, default 0
 	@itemTake {Number} :: optional, default 0
 	return {Database}
@@ -275,7 +275,7 @@ Database.prototype.all = function(fnFilter, fnCallback, itemSkip, itemTake) {
 /*
 	Read data from database
 	@fnFilter {Function} :: must return {Boolean};
-	@fnCallback {Function} :: params: @err {Error}, @obj {Object}
+	@fnCallback {Function} :: params: @err {Error}, @doc {Object}
 	return {Database}
 */
 Database.prototype.one = function(fnFilter, fnCallback) {
@@ -293,12 +293,93 @@ Database.prototype.top = function(max, fnFilter, fnCallback) {
 
 /*
 	Scalar
-	@fnFilter {Function} :: params: @obj {Object}, return TRUE | FALSE
+	@fnFilter {Function} :: params: @doc {Object}, return TRUE | FALSE
 	@fnCallback {Function} :: params: @err {Error}, @count {Number}
 	return {Database}
 */
 Database.prototype.scalar = function(fnFilter, fnCallback) {
 	return this.read(fnFilter, fnCallback, 0, 0, true);
+};
+
+/*
+	Internal function
+	@data {String}
+	@fnUpdate {Function}
+	@fnWrite {Function}
+*/
+Database.prototype.updateValue = function(data, fnUpdate, fnWrite) {
+
+	var self = this;
+	var index = data.indexOf('\n');
+
+	if (index === -1) {
+		self.current += data;
+		return;
+	}
+
+	self.current += data.substring(0, index);
+	
+	var obj = JSON.parse(self.current); 
+
+	obj = fnUpdate(obj) || null;
+	
+	if (obj !== null) {
+		fnWrite(obj);
+		self.count++;
+	}
+
+	self.current = '';
+	self.removeValue(data.substring(index + 1), fnFilter, fnWrite);
+};
+
+/*
+	Multiple update documents
+	fnUpdate {Function} :: params: @doc {Object} and must return updated @doc;
+	fnCallback {Function} :: optional, params: @err {Error}, @count {Number}
+	return {Database}
+*/
+Database.prototype.update = function(fnUpdate, fnCallback) {
+	var self = this;
+
+	if (self.isLocked) {
+		self.pending.push(function() {
+			self.update(fnFilter, fnCallback);
+		});
+		return self;
+	}
+
+	var reader = fs.createReadStream(self.filename);
+	var writer = fs.createWriteStream(self.filenameTemp, '');
+
+	self.isLocked = true;
+	self.isScalar = false;
+	self.count = 0;
+	self.current = '';
+
+	var fnWrite = function(obj) {
+		writer.write(JSON.stringify(obj) + '\n');
+	};
+
+	reader.on('data', function(buffer) {
+		var data = buffer.toString();
+		self.updateValue(data, fnUpdate, fnWrite);
+	});
+
+	reader.on('end', function() {
+		fs.rename(self.filenameTemp, self.filename, function(err) {
+			self.isLocked = false;
+			self.next();
+			fnCallback && fnCallback(null, self.count);
+		});
+	});
+
+	reader.on('error', function(err) {
+		self.isLocked = false;
+		self.next();
+		fnCallback(err, self.count);
+	});
+
+	return self;
 };
 
 /*

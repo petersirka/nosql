@@ -27,27 +27,38 @@ $ npm install nosql
 
 var nosql = require('nosql').load('/users/petersirka/desktop/database.nosql');
 
-// WRITE (cannot update record)
-// nosql.write(object, fnCallback);
+// INSERT
+// nosql.insert(object, fnCallback);
 
-var callback = function(err, obj) {
+var callback = function(err, doc) {
 	// optional
 };
 
-nosql.write({ firstName: 'Peter', lastName: 'Širka', age: 28 }, callback);
-nosql.write({ firstName: 'Fero', lastName: 'Samo', age: 40 }, callback);
-nosql.write({ firstName: 'Juraj', lastName: 'Hundo', age: 28 }, callback);
+nosql.insert({ firstName: 'Peter', lastName: 'Širka', age: 28 }, callback);
+nosql.insert({ firstName: 'Fero', lastName: 'Samo', age: 40 }, callback);
+nosql.insert({ firstName: 'Juraj', lastName: 'Hundo', age: 28 }, callback);
 
-// WRITE BULK
-// nosql.writeBulk(object, fnCallback);
+// UPDATE
+// nosql.update(fnUpdate, fnCallback);
+
+nosql.update(function(doc) {
+	
+	if (doc.name === 'Peter')
+		doc.name = 'Jano';
+
+	return doc;
+});
+
+// BULK INSERT
+// nosql.bulk(array, fnCallback);
 
 var callback = function(err, count) {
 	console.log('INSERTED: ' + count);
 };
 
-nosql.writeBulk([{ firstName: 'Peter', lastName: 'Širka', age: 28 }, { firstName: 'Fero', lastName: 'Samo', age: 40 }, { firstName: 'Juraj', lastName: 'Hundo', age: 28 }], callback);
+nosql.bulk([{ firstName: 'Peter', lastName: 'Širka', age: 28 }, { firstName: 'Fero', lastName: 'Samo', age: 40 }, { firstName: 'Juraj', lastName: 'Hundo', age: 28 }], callback);
 
-// READ
+// READ DATA
 // nosql.all(fnFilter, fnCallback, itemSkip, itemTake);
 // nosql.one(fnFilter, fnCallback);
 // nosql.top(max, fnFilter, fnCallback);
@@ -66,14 +77,14 @@ var callback = function(err, selected) {
 	console.log('Users between 25 and 35 years old: ' + users.join(', '));
 });
 
-var filter = function(obj) {
-	return obj.age > 24 && obj.age < 36;
+var filter = function(doc) {
+	return doc.age > 24 && doc.age < 36;
 };
 
 nosql.all(filter, callback);
-nosql.one(filter, function(err, obj) {});
+nosql.one(filter, function(err, doc) {});
 nosql.top(5, filter, callback);
-nosql.each(function(err, obj, offset) {});
+nosql.each(function(err, doc, offset) {});
 
 // FILTER can be a string
 // eval is bad, but sometimes is very helpful
@@ -86,14 +97,11 @@ var callback = function(err, count) {
 	console.log('Removed ' + count + ' documents');
 });
 
-var filter = function(obj) {
-	return obj.age > 24 && obj.age < 36;
+var filter = function(doc) {
+	return doc.age > 24 && doc.age < 36;
 };
 
 nosql.remove(filter, callback);
-
-// HOW TO UPDATE OBJECT?
-nosql.write(callback –> nosql.remove);
 
 ```
 
