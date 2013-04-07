@@ -48,7 +48,10 @@ var callback = function(err, count) {
 nosql.writeBulk([{ firstName: 'Peter', lastName: 'Širka', age: 28 }, { firstName: 'Fero', lastName: 'Samo', age: 40 }, { firstName: 'Juraj', lastName: 'Hundo', age: 28 }], callback);
 
 // READ
-// nosql.read(fnFilter, fnCallback);
+// nosql.all(fnFilter, fnCallback, itemSkip, itemTake);
+// nosql.one(fnFilter, fnCallback);
+// nosql.top(max, fnFilter, fnCallback);
+// nosql.each(fnCallback);
 
 var callback = function(err, selected) {
 	
@@ -67,7 +70,10 @@ var filter = function(obj) {
 	return obj.age > 24 && obj.age < 36;
 };
 
-nosql.read(filter, callback);
+nosql.all(filter, callback);
+nosql.one(filter, function(err, obj) {});
+nosql.top(5, filter, callback);
+nosql.each(function(err, obj, offset) {});
 
 
 // REMOVE

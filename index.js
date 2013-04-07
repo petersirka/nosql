@@ -32,9 +32,9 @@ function Database(filename) {
 	this.filenameTemp = filename + '.tmp';
 	this.isLocked = false;
 	this.isScalar = false;
+	this.skip = false;
 	this.count = 0;
 	this.current = '';
-	this.selected = [];
 };
 
 /*
@@ -98,14 +98,25 @@ Database.prototype.writeBulk = function(arr, fnCallback) {
 	return self;
 };
 
+Database.prototype.cancel = function() {
+	var self = this;
+	self.skip = true;
+	return self;
+};
+
 /*
 	Internal function
 	@data {String}
 	@fnFilter {Function}
+	@fnCallback {Function}
 */
-Database.prototype.readValue = function(data, fnFilter) {
+Database.prototype.readValue = function(data, fnFilter, fnCallback) {
 
 	var self = this;
+
+	if (self.skip)
+		return;
+
 	var index = data.indexOf('\n');
 
 	if (index === -1) {
@@ -118,71 +129,170 @@ Database.prototype.readValue = function(data, fnFilter) {
 	var obj = JSON.parse(self.current); 
 
 	if (fnFilter(obj)) {
-		if (self.isScalar)
-			self.count++;
-		else			
-			self.selected.push(obj);
+
+		self.count++;
+
+		if (!self.isScalar)
+			fnCallback(obj, self.count);
 	}
 
 	self.current = '';
-	self.readValue(data.substring(index + 1), fnFilter);
+	self.readValue(data.substring(index + 1), fnFilter, fnCallback);
 };
 
 /*
-	Read data from database
+	Internal function
 	@fnFilter {Function} :: params: @obj {Object}, return TRUE | FALSE
 	@fnCallback {Function} :: params: @err {Error}, @selected {Array of Object}
+	@itemSkip {Number} :: optional
+	@itemTake {Number} :: optional
 	@isScalar {Boolean} :: optional, default is false 
 	return {Database}
 */
-Database.prototype.read = function(fnFilter, fnCallback, isScalar) {
+Database.prototype.read = function(fnFilter, fnCallback, itemSkip, itemTake, isScalar) {
 	
 	var self = this;
 
 	if (self.isLocked) {
 		self.pending.push(function() {
-			self.read(fnFilter, fnCallback, isScalar);
+			self.read(fnFilter, fnCallback, itemSkip, itemTake, isScalar);
 		});
 		return self;
 	}
 
 	var reader = fs.createReadStream(self.filename);
-	self.selected = [];
 
 	if (typeof(fnCallback) === 'undefined') {		
 		fnCallback = fnFilter;
 		fnFilter = function() { return true; };
 	}
 
-	if (typeof(fnCallback) === 'boolean') {
-		isScalar = fnCallback;
-		fnCallback = fnFilter;
-		fnFilter = function() { return true; };
-	};
+	var selected = [];
 
+	self.skip = false;
 	self.isScalar = isScalar;
+	self.isLocked = true;
+	self.current = '';
+
+	var skip = itemSkip || 0;
+	var take = itemTake || 0;
+
+	var fnItem = function(o, count) {
+
+		if (skip > 0 && count < skip)
+			return;
+
+		selected.push(o);
+
+		if (take > 0 && selected.length === take)
+			self.skip = true;
+	};
 
 	reader.on('data', function(buffer) {
 		var data = buffer.toString();
-		self.readValue(data, fnFilter);
+		self.readValue(data, fnFilter, fnItem);
 	});
 
 	reader.on('end', function() {
-		fnCallback(null, self.isScalar ? self.count : self.selected);
-		self.selected = [];
+		self.isLocked = false;
+		self.next();
+		fnCallback(null, self.isScalar ? self.count : selected);
+	});
+
+	reader.on('error', function(err) {
+		self.isLocked = false;
+		self.next();
+		fnCallback(err, self.isScalar ? self.count : []);
+	});
+
+	return self;
+};
+
+/*
+	Read each object from database
+	@fnCallback {Function}
+	return {Database}
+*/
+Database.prototype.each = function(fnCallback) {
+	
+	var self = this;
+
+	if (self.isLocked) {
+		self.pending.push(function() {
+			self.each(fnCallback);
+		});
+		return self;
+	}
+
+	var fnItem = function(o, count) {
+		fnCallback(null, o, count);
+	};
+
+	var fnFilter = function(o) {
+		return true;
+	};
+
+	var reader = fs.createReadStream(self.filename);
+
+	self.skip = false;
+	self.isScalar = false;
+	self.isLocked = true;
+	self.current = '';
+
+	reader.on('data', function(buffer) {
+		var data = buffer.toString();
+		self.readValue(data, fnFilter, fnItem);
+	});
+
+	reader.on('end', function() {
+		self.isLocked = false;
 		self.next();
 	});
 
 	reader.on('error', function(err) {
-		fnCallback(err, self.isScalar ? self.count : []);
-		self.selected = [];
+		self.isLocked = false;
 		self.next();
 	});
 
-	self.current = '';
-	reader.resume();
-
 	return self;
+};
+
+/*
+	Read all objects from database
+	@fnFilter {Function} :: params: @obj {Object}, return TRUE | FALSE
+	@fnCallback {Function} :: params: @err {Error}, @selected {Array of Object}
+	@itemSkip {Number} :: optional, default 0
+	@itemTake {Number} :: optional, default 0
+	return {Database}
+*/
+Database.prototype.all = function(fnFilter, fnCallback, itemSkip, itemTake) {
+	return this.read(fnFilter, fnCallback, itemSkip, itemTake);
+};
+
+/*
+	Read one object
+	@fnFilter {Function} :: params: @obj {Object}, return TRUE | FALSE
+	@fnCallback {Function} :: params: @err {Error}, @selected {Object}
+	return {Database}
+*/
+Database.prototype.one = function(fnFilter, fnCallback) {
+
+	var cb = function(err, selected) {
+		fnCallback(err, selected[0] || null);
+	};
+
+	return this.read(fnFilter, cb, 0, 1);
+};
+
+/*
+	Read top objects from database
+	@max {Number}
+	@fnFilter {Function} :: params: @obj {Object}, return TRUE | FALSE
+	@fnCallback {Function} :: params: @err {Error}, @selected {Array of Object}
+	return {Database}
+*/
+Database.prototype.top = function(max, fnFilter, fnCallback) {
+	return this.read(fnFilter, fnCallback, 0, max);
 };
 
 /*
@@ -192,7 +302,7 @@ Database.prototype.read = function(fnFilter, fnCallback, isScalar) {
 	return {Database}
 */
 Database.prototype.scalar = function(fnFilter, fnCallback) {
-	return this.read(fnFilter, fnCallback, true);
+	return this.read(fnFilter, fnCallback, 0, 0, true);
 };
 
 /*
@@ -236,15 +346,18 @@ Database.prototype.remove = function(fnFilter, fnCallback) {
 
 	if (self.isLocked) {
 		self.pending.push(function() {
-			self.read(fnFilter, fnCallback);
+			self.remove(fnFilter, fnCallback);
 		});
 		return self;
 	}
 
 	var reader = fs.createReadStream(self.filename);
-	var writer = fs.createWriteStream(self.filenameTemp);
+	var writer = fs.createWriteStream(self.filenameTemp, '');
 
 	self.isLocked = true;
+	self.isScalar = false;
+	self.count = 0;
+	self.current = '';
 
 	var fnWrite = function(obj) {
 		writer.write(JSON.stringify(obj) + '\n');
@@ -256,22 +369,19 @@ Database.prototype.remove = function(fnFilter, fnCallback) {
 	});
 
 	reader.on('end', function() {
-		fnCallback && fnCallback(null, self.count);
 		fs.rename(self.filenameTemp, self.filename, function(err) {
 			self.isLocked = false;
 			self.next();
+			fnCallback && fnCallback(null, self.count);
 		});
 	});
 
 	reader.on('error', function(err) {
 		self.isLocked = false;
-		fnCallback(err, self.count);
 		self.next();
+		fnCallback(err, self.count);
 	});
 
-	self.count = 0;
-	self.current = '';
-	reader.resume();
 	return self;
 };
 

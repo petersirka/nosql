@@ -1,6 +1,6 @@
 {
     "name": "nosql",
-    "version": "1.0.0-1",
+    "version": "1.0.0-2",
     "description": "NoSQL embed database for small node.js projects",
     "main": "./index.js",
     "keywords": [ "nosql", "database", "embed"],
