@@ -1,5 +1,5 @@
-node.js NoSQL embed database
-============================
+node.js NoSQL embedded database
+===============================
 
 * write in JavaScript
 * data are saved to one file as text file

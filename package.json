@@ -1,11 +1,11 @@
 {
     "name": "nosql",
-    "version": "1.0.0-3",
-    "description": "NoSQL embed database for small node.js projects",
+    "version": "1.0.0-4",
+    "description": "NoSQL embedded database for small node.js projects",
     "main": "./index.js",
-    "keywords": [ "nosql", "database", "embed"],
+    "keywords": [ "nosql", "database", "embed", "embedded"],
     "engines": {
-        "node": ">=0.6.0"
+        "node": ">=0.8.0"
     },
     "readmeFilename": "readme.md",
     "scripts": {
