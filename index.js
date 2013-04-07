@@ -43,13 +43,13 @@ function Database(filename) {
 	@fnCallback {Function} :: optional, params: @err {Error}, @doc {Object}
 	return {Database}
 */
-Database.prototype.write = function(doc, fnCallback) {
+Database.prototype.insert = function(doc, fnCallback) {
 
 	var self = this;
 
 	if (self.isLocked) {
 		self.pending.push(function() {
-			self.write(doc, fnCallback);
+			self.insert(doc, fnCallback);
 		});
 		return self;
 	}
@@ -70,12 +70,12 @@ Database.prototype.write = function(doc, fnCallback) {
 	@fnCallback {Function} :: optional, params: @err {Error}, @count {Number}
 	return {Database}
 */
-Database.prototype.writeBulk = function(arr, fnCallback) {
+Database.prototype.bulk = function(arr, fnCallback) {
 	var self = this;
 
 	if (self.isLocked) {
 		self.pending.push(function() {
-			self.writeBulk(arr, fnCallback);
+			self.bulk(arr, fnCallback);
 		});
 		
 		return self;
