@@ -198,14 +198,14 @@ Database.prototype.read = function(fnFilter, fnCallback, itemSkip, itemTake, isS
 
 	reader.on('end', function() {
 		self.isLocked = false;
-		self.next();
 		fnCallback(null, self.isScalar ? self.count : selected);
+		self.next();
 	});
 
 	reader.on('error', function(err) {
 		self.isLocked = false;
-		self.next();
 		fnCallback(err, self.isScalar ? self.count : []);
+		self.next();
 	});
 
 	return self;
@@ -329,7 +329,7 @@ Database.prototype.updateValue = function(data, fnUpdate, fnWrite) {
 	}
 
 	self.current = '';
-	self.removeValue(data.substring(index + 1), fnFilter, fnWrite);
+	self.updateValue(data.substring(index + 1), fnUpdate, fnWrite);
 };
 
 /*
@@ -343,7 +343,7 @@ Database.prototype.update = function(fnUpdate, fnCallback) {
 
 	if (self.isLocked) {
 		self.pending.push(function() {
-			self.update(fnFilter, fnCallback);
+			self.update(fnUpdate, fnCallback);
 		});
 		return self;
 	}
@@ -368,15 +368,15 @@ Database.prototype.update = function(fnUpdate, fnCallback) {
 	reader.on('end', function() {
 		fs.rename(self.filenameTemp, self.filename, function(err) {
 			self.isLocked = false;
-			self.next();
 			fnCallback && fnCallback(null, self.count);
+			self.next();
 		});
 	});
 
 	reader.on('error', function(err) {
 		self.isLocked = false;
-		self.next();
 		fnCallback(err, self.count);
+		self.next();
 	});
 
 	return self;
@@ -451,15 +451,15 @@ Database.prototype.remove = function(fnFilter, fnCallback) {
 	reader.on('end', function() {
 		fs.rename(self.filenameTemp, self.filename, function(err) {
 			self.isLocked = false;
-			self.next();
 			fnCallback && fnCallback(null, self.count);
+			self.next();
 		});
 	});
 
 	reader.on('error', function(err) {
 		self.isLocked = false;
-		self.next();
 		fnCallback(err, self.count);
+		self.next();
 	});
 
 	return self;
