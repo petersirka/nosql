@@ -1,7 +1,7 @@
 node.js NoSQL embedded database
 ===============================
 
-* write in JavaScript
+* written in JavaScript
 * data are saved to one file as text file
 * easy editing in e.g. notepad
 * quick, simple, effective
