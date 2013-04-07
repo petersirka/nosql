@@ -28,7 +28,8 @@ $ npm install nosql
 var nosql = require('nosql').load('/users/petersirka/desktop/database.nosql');
 
 // INSERT
-// nosql.insert(object, fnCallback);
+// nosql.insert(doc, fnCallback);
+// ============================================================================
 
 var callback = function(err, doc) {
 	// optional
@@ -40,6 +41,7 @@ nosql.insert({ firstName: 'Juraj', lastName: 'Hundo', age: 28 }, callback);
 
 // UPDATE
 // nosql.update(fnUpdate, fnCallback);
+// ============================================================================
 
 nosql.update(function(doc) {
 	
@@ -51,6 +53,7 @@ nosql.update(function(doc) {
 
 // BULK INSERT
 // nosql.bulk(array, fnCallback);
+// ============================================================================
 
 var callback = function(err, count) {
 	console.log('INSERTED: ' + count);
@@ -63,6 +66,7 @@ nosql.bulk([{ firstName: 'Peter', lastName: 'Širka', age: 28 }, { firstName: 'F
 // nosql.one(fnFilter, fnCallback);
 // nosql.top(max, fnFilter, fnCallback);
 // nosql.each(fnCallback);
+// ============================================================================
 
 var callback = function(err, selected) {
 	
@@ -88,10 +92,12 @@ nosql.each(function(err, doc, offset) {});
 
 // FILTER can be a string
 // eval is bad, but sometimes is very helpful
+// ============================================================================
 nosql.all('doc.age > 24 && doc.age < 36');
 
 // REMOVE
 // nosql.remove(fnFilter, fnCallback);
+// ============================================================================
 
 var callback = function(err, count) {
 	console.log('Removed ' + count + ' documents');
