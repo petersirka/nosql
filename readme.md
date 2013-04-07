@@ -5,7 +5,6 @@ node.js NoSQL embed database
 * data are saved to one file as text file
 * easy editing in e.g. notepad
 * quick, simple, effective
-
 * supports write object
 * supports read object
 * supports remove object
