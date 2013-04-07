@@ -75,6 +75,9 @@ nosql.one(filter, function(err, obj) {});
 nosql.top(5, filter, callback);
 nosql.each(function(err, obj, offset) {});
 
+// FILTER can be a string
+// eval is bad, but sometimes is very helpful
+nosql.all('doc.age > 24 && doc.age < 36');
 
 // REMOVE
 // nosql.remove(fnFilter, fnCallback);

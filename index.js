@@ -141,7 +141,7 @@ Database.prototype.readValue = function(data, fnFilter, fnCallback) {
 };
 
 /*
-	Internal function
+	Read data from database
 	@fnFilter {Function} :: params: @obj {Object}, return TRUE | FALSE
 	@fnCallback {Function} :: params: @err {Error}, @selected {Array of Object}
 	@itemSkip {Number} :: optional
@@ -166,6 +166,9 @@ Database.prototype.read = function(fnFilter, fnCallback, itemSkip, itemTake, isS
 		fnCallback = fnFilter;
 		fnFilter = function() { return true; };
 	}
+
+	if (typeof(fnFilter) === 'string')
+		fnFilter = eval('(function(doc){' + (fnFilter.indexOf('return ') === -1 ? 'return ' : '') + fnFilter + '})');
 
 	var selected = [];
 
@@ -209,7 +212,7 @@ Database.prototype.read = function(fnFilter, fnCallback, itemSkip, itemTake, isS
 };
 
 /*
-	Read each object from database
+	Read data from database
 	@fnCallback {Function}
 	return {Database}
 */
@@ -257,24 +260,10 @@ Database.prototype.each = function(fnCallback) {
 	return self;
 };
 
-/*
-	Read all objects from database
-	@fnFilter {Function} :: params: @obj {Object}, return TRUE | FALSE
-	@fnCallback {Function} :: params: @err {Error}, @selected {Array of Object}
-	@itemSkip {Number} :: optional, default 0
-	@itemTake {Number} :: optional, default 0
-	return {Database}
-*/
 Database.prototype.all = function(fnFilter, fnCallback, itemSkip, itemTake) {
 	return this.read(fnFilter, fnCallback, itemSkip, itemTake);
 };
 
-/*
-	Read one object
-	@fnFilter {Function} :: params: @obj {Object}, return TRUE | FALSE
-	@fnCallback {Function} :: params: @err {Error}, @selected {Object}
-	return {Database}
-*/
 Database.prototype.one = function(fnFilter, fnCallback) {
 
 	var cb = function(err, selected) {
@@ -284,13 +273,6 @@ Database.prototype.one = function(fnFilter, fnCallback) {
 	return this.read(fnFilter, cb, 0, 1);
 };
 
-/*
-	Read top objects from database
-	@max {Number}
-	@fnFilter {Function} :: params: @obj {Object}, return TRUE | FALSE
-	@fnCallback {Function} :: params: @err {Error}, @selected {Array of Object}
-	return {Database}
-*/
 Database.prototype.top = function(max, fnFilter, fnCallback) {
 	return this.read(fnFilter, fnCallback, 0, max);
 };
@@ -350,6 +332,9 @@ Database.prototype.remove = function(fnFilter, fnCallback) {
 		});
 		return self;
 	}
+
+	if (typeof(fnFilter) === 'string')
+		fnFilter = eval('(function(doc){' + (fnFilter.indexOf('return ') === -1 ? 'return ' : '') + fnFilter + '})');
 
 	var reader = fs.createReadStream(self.filename);
 	var writer = fs.createWriteStream(self.filenameTemp, '');
