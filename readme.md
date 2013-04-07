@@ -8,6 +8,7 @@ node.js NoSQL embed database
 * supports write object
 * supports read object
 * supports remove object
+* easy filtering object
 * __no dependencies__
 
 ## Installation
@@ -44,7 +45,7 @@ var callback = function(err, count) {
 	console.log('INSERTED: ' + count);
 };
 
-nosql.write([{ firstName: 'Peter', lastName: 'Širka', age: 28 }, { firstName: 'Fero', lastName: 'Samo', age: 40 }, { firstName: 'Juraj', lastName: 'Hundo', age: 28 }], callback);
+nosql.writeBulk([{ firstName: 'Peter', lastName: 'Širka', age: 28 }, { firstName: 'Fero', lastName: 'Samo', age: 40 }, { firstName: 'Juraj', lastName: 'Hundo', age: 28 }], callback);
 
 // READ
 // nosql.read(fnFilter, fnCallback);
