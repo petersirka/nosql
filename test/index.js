@@ -4,7 +4,7 @@ var nosql = require('../index');
 var db = nosql.load(filename);
 var assert = require('assert');
 
-var write = true;
+var write = false;
 var read = true;
 var remove = true;
 
@@ -12,18 +12,18 @@ var indexComplete = 0;
 var indexInsert = 0;
 
 db.on('insert', function(count) {
-	indexInsert++;
-	if (indexInsert < 3)
-		assert.ok(count === 1, 'insert ' + indexInsert);
-	else
-		assert.ok(count === 998, 'insert bulk');
+	console.log('insert ---> ', count);
 });
 
-if (fs.existsSync(filename))
-	fs.unlinkSync(filename);
+db.on('complete', function() {
+	console.log('complete');
+});
 
 if (write) {
-	for (var i = 0; i < 1000; i++)
+	if (fs.existsSync(filename))
+		fs.unlinkSync(filename);
+
+	for (var i = 0; i < 100000; i++)
 		db.insert({ index: i });
 }
 
@@ -54,6 +54,11 @@ if (read) {
 	}, 500);
 }
 
+db.one('doc.index === 89080', function(err, doc) {
+	console.log(doc);
+});
+
+/*
 setTimeout(function() {
 	db.update(function(o) {
 		if (o.index > 10 && o.index < 20)
@@ -74,4 +79,4 @@ if (remove) {
 			console.log(count);
 		});
 	}, 1000);
-}
+}*/

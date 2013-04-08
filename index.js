@@ -194,7 +194,6 @@ Database.prototype.read = function(fnFilter, fnCallback, itemSkip, itemTake, isS
 	var count = 0;
 	var isCanceled = false;
 
-
 	var fnCancel = function() {
 		isCanceled = true;
 	};
@@ -349,14 +348,14 @@ Database.prototype.each = function(fnCallback) {
 			return;
 
 		operation.forEach(function(fn) {
-			fn(doc, count);
+			fn(err, doc, count);
 		});
 
 		count++;
 	};
 
 	reader.on('data', function(buffer) {
-		onBuffer(buffer.toString(), fnItem, fnBuffer, fnCancel);
+		onBuffer(buffer.toString(), fnItem, fnBuffer);
 	});
 
 	reader.on('end', function() {
