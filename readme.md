@@ -6,7 +6,7 @@ node.js NoSQL embedded database
 * easy editing in e.g. notepad
 * quick, simple, effective
 * insert, update, read, remove
-* easy filtering object
+* easy filtering documents
 * __no dependencies__
 
 ## Installation

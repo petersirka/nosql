@@ -19,23 +19,53 @@
 // OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE
 // USE OR OTHER DEALINGS IN THE SOFTWARE.
 
+// DB PRIORITY
+
+// 1. insert
+// 2. update/remove
+// 3. each
+// 4. read (all, top, one)
+
 var fs = require('fs');
+var events = require('events');
 var encoding = 'utf8';
+
+var STATUS_UNKNOWN = 0;
+var STATUS_READING = 1;
+var STATUS_WRITING = 2;
+var STATUS_LOCKING = 3;
+
+var MAX_WRITESTREAM = 2;
+var MAX_READSTREAM  = 4;
+
+if (typeof(setImmediate) === 'undefined') {
+	setImmediate = function(cb) {
+		process.nextTick(cb);
+	};
+}
 
 /*
 	Database
 	@filename {String}
 */
 function Database(filename) {
-	this.pending = [];
+	
+	this.status = STATUS_UNKNOWN;
+	this.current = '';
+
+	this.countRead = 0;
+	this.countWrite = 0;
+
+	this.pendingRead = [];
+	this.pendingEach = [];
+	this.pendingWrite = [];
+	this.pendingLock = [];
+
 	this.filename = filename;
 	this.filenameTemp = filename + '.tmp';
-	this.isLocked = false;
-	this.isScalar = false;
-	this.skip = false;
-	this.count = 0;
-	this.current = '';
 };
+
+Database.prototype = new events.EventEmitter;
 
 /*
 	Write data to database
@@ -44,23 +74,8 @@ function Database(filename) {
 	return {Database}
 */
 Database.prototype.insert = function(doc, fnCallback) {
-
 	var self = this;
-
-	if (self.isLocked) {
-		self.pending.push(function() {
-			self.insert(doc, fnCallback);
-		});
-		return self;
-	}
-
-	self.isLocked = true;
-	fs.appendFile(self.filename, JSON.stringify(doc) + '\n', { encoding: encoding }, function(err) {
-		self.isLocked = false;
-		fnCallback && fnCallback(err, doc);
-		self.next();
-	});
-
+	self.bulk([doc], fnCallback);
 	return self;
 };
 
@@ -73,71 +88,59 @@ Database.prototype.insert = function(doc, fnCallback) {
 Database.prototype.bulk = function(arr, fnCallback) {
 	var self = this;
 
-	if (self.isLocked) {
-		self.pending.push(function() {
-			self.bulk(arr, fnCallback);
+	if (self.status === STATUS_LOCKING || self.countWrite >= MAX_WRITESTREAM) {
+
+		arr.forEach(function(o) {
+			self.pendingWrite.push(o);
 		});
 		
 		return self;
 	}
 
-	self.isLocked = true;
+	self.status = STATUS_WRITING;
+	self.countWrite++;
 
 	var builder = [];
 
-	arr.forEach(function(o) {
-		builder.push(JSON.stringify(o));
+	arr.forEach(function(doc) {
+
+		if (typeof(doc) !== 'string')
+			doc = JSON.stringify(doc);
+
+		builder.push(doc);
 	});
 
+	self.emit('insert', builder.length);
 	fs.appendFile(self.filename, builder.join('\n') + '\n', { encoding: encoding }, function(err) {
-		self.isLocked = false;
-		fnCallback && fnCallback(err, arr.length);
+
+		self.countWrite--;
 		self.next();
+
+		if (fnCallback)
+			setImmediate(function() { fnCallback(err, doc); });
+
 	});
 
 	return self;
 };
 
-Database.prototype.cancel = function() {
-	var self = this;
-	self.skip = true;
-	return self;
-};
+function onBuffer(buffer, fnItem, fnBuffer, fnCancel) {
 
-/*
-	Internal function
-	@data {String}
-	@fnFilter {Function}
-	@fnCallback {Function}
-*/
-Database.prototype.readValue = function(data, fnFilter, fnCallback) {
-
-	var self = this;
-
-	if (self.skip)
-		return;
-
-	var index = data.indexOf('\n');
+	var index = buffer.indexOf('\n');
 
 	if (index === -1) {
-		self.current += data;
+		fnBuffer(buffer);
 		return;
 	}
 
-	self.current += data.substring(0, index);
-	
-	var obj = JSON.parse(self.current); 
-
-	if (fnFilter(obj)) {
-
-		self.count++;
-
-		if (!self.isScalar)
-			fnCallback(obj, self.count);
+	try
+	{	
+		fnItem(null, JSON.parse(fnBuffer(buffer.substring(0, index))), fnCancel);
+	} catch (ex) {
+		fnItem(ex, null);
 	}
 
-	self.current = '';
-	self.readValue(data.substring(index + 1), fnFilter, fnCallback);
+	onBuffer(buffer.substring(index + 1), fnItem, fnBuffer, fnCancel);
 };
 
 /*
@@ -149,14 +152,18 @@ Database.prototype.readValue = function(data, fnFilter, fnCallback) {
 	@isScalar {Boolean} :: optional, default is false 
 	return {Database}
 */
-Database.prototype.read = function(fnFilter, fnCallback, itemSkip, itemTake, isScalar) {
+Database.prototype.read = function(fnFilter, fnCallback, itemSkip, itemTake, isScalar, name) {
 	
 	var self = this;
+	var skip = itemSkip || 0;
+	var take = itemTake || 0;
 
-	if (self.isLocked) {
-		self.pending.push(function() {
+	if (self.status === STATUS_LOCKING || self.countRead >= MAX_READSTREAM) {
+		
+		self.pendingRead.push(function() {
 			self.read(fnFilter, fnCallback, itemSkip, itemTake, isScalar);
 		});
+
 		return self;
 	}
 
@@ -170,91 +177,71 @@ Database.prototype.read = function(fnFilter, fnCallback, itemSkip, itemTake, isS
 	if (typeof(fnFilter) === 'string')
 		fnFilter = eval('(function(doc){' + (fnFilter.indexOf('return ') === -1 ? 'return ' : '') + fnFilter + '})');
 
+	if (fnFilter === null)
+		fnFilter = function() { return true; };
+
+	self.emit(name || 'read');
+
+	// opened streams
+	self.countRead++;
+	self.status = STATUS_READING;
+
 	var selected = [];
+	var current = '';
+	var count = 0;
+	var isCanceled = false;
 
-	self.skip = false;
-	self.isScalar = isScalar;
-	self.isLocked = true;
-	self.current = '';
 
-	var skip = itemSkip || 0;
-	var take = itemTake || 0;
+	var fnCancel = function() {
+		isCanceled = true;
+	};
 
-	var fnItem = function(o, count) {
+	var fnBuffer = function(buffer) {
+		current += buffer;
+		return current;
+	};
 
-		if (skip > 0 && count < skip)
+	var fnItem = function(err, doc, cancel) {
+
+		if (isCanceled)
 			return;
 
-		selected.push(o);
+		// clear buffer;
+		current = '';
+
+		if (err || !fnFilter(doc))
+			return;
+
+		count++;
+
+		if (skip > 0 && count <= skip)
+			return;
+
+		if (!isScalar)
+			selected.push(doc);
 
 		if (take > 0 && selected.length === take)
-			self.skip = true;
+			cancel();
 	};
 
 	reader.on('data', function(buffer) {
-		var data = buffer.toString();
-		self.readValue(data, fnFilter, fnItem);
+		
+		if (isCanceled)
+			return;
+		
+		onBuffer(buffer.toString(), fnItem, fnBuffer, fnCancel);
 	});
 
 	reader.on('end', function() {
-		self.isLocked = false;
-		fnCallback(null, self.isScalar ? self.count : selected);
+		self.countRead--;
 		self.next();
+		setImmediate(function() { fnCallback(null, isScalar ? count : selected); });
 	});
 
 	reader.on('error', function(err) {
-		self.isLocked = false;
-		fnCallback(err, self.isScalar ? self.count : []);
+		self.countRead--;
 		self.next();
-	});
-
-	return self;
-};
-
-/*
-	Read data from database
-	@fnCallback {Function} :: params: @err {Error}, @doc {Object}, @offset {Number}
-	return {Database}
-*/
-Database.prototype.each = function(fnCallback) {
-	
-	var self = this;
-
-	if (self.isLocked) {
-		self.pending.push(function() {
-			self.each(fnCallback);
-		});
-		return self;
-	}
-
-	var fnItem = function(o, count) {
-		fnCallback(null, o, count);
-	};
-
-	var fnFilter = function(o) {
-		return true;
-	};
-
-	var reader = fs.createReadStream(self.filename);
-
-	self.skip = false;
-	self.isScalar = false;
-	self.isLocked = true;
-	self.current = '';
-
-	reader.on('data', function(buffer) {
-		var data = buffer.toString();
-		self.readValue(data, fnFilter, fnItem);
-	});
-
-	reader.on('end', function() {
-		self.isLocked = false;
-		self.next();
-	});
-
-	reader.on('error', function(err) {
-		self.isLocked = false;
-		self.next();
+		setImmediate(function() { fnCallback(err, isScalar ? count : []); });
 	});
 
 	return self;
@@ -269,7 +256,7 @@ Database.prototype.each = function(fnCallback) {
 	return {Database}
 */
 Database.prototype.all = function(fnFilter, fnCallback, itemSkip, itemTake) {
-	return this.read(fnFilter, fnCallback, itemSkip, itemTake);
+	return this.read(fnFilter, fnCallback, itemSkip, itemTake, 'all');
 };
 
 /*
@@ -284,11 +271,17 @@ Database.prototype.one = function(fnFilter, fnCallback) {
 		fnCallback(err, selected[0] || null);
 	};
 
-	return this.read(fnFilter, cb, 0, 1);
+	return this.read(fnFilter, cb, 0, 1, false, 'one');
 };
 
+/*
+	Read TOP data from database
+	@fnFilter {Function} :: must return {Boolean};
+	@fnCallback {Function} :: params: @err {Error}, @doc {Object}
+	return {Database}
+*/
 Database.prototype.top = function(max, fnFilter, fnCallback) {
-	return this.read(fnFilter, fnCallback, 0, max);
+	return this.read(fnFilter, fnCallback, 0, max, false, 'top');
 };
 
 /*
@@ -298,84 +291,78 @@ Database.prototype.top = function(max, fnFilter, fnCallback) {
 	return {Database}
 */
 Database.prototype.scalar = function(fnFilter, fnCallback) {
-	return this.read(fnFilter, fnCallback, 0, 0, true);
+	return this.read(fnFilter, fnCallback, 0, 0, true, 'scalar');
 };
 
 /*
-	Internal function
-	@data {String}
-	@fnUpdate {Function}
-	@fnWrite {Function}
-*/
-Database.prototype.updateValue = function(data, fnUpdate, fnWrite) {
-
-	var self = this;
-	var index = data.indexOf('\n');
-
-	if (index === -1) {
-		self.current += data;
-		return;
-	}
-
-	self.current += data.substring(0, index);
-	
-	var obj = JSON.parse(self.current); 
-
-	obj = fnUpdate(obj) || null;
-	
-	if (obj !== null) {
-		fnWrite(obj);
-		self.count++;
-	}
-
-	self.current = '';
-	self.updateValue(data.substring(index + 1), fnUpdate, fnWrite);
-};
-
-/*
-	Multiple update documents
-	fnUpdate {Function} :: params: @doc {Object} and must return updated @doc;
-	fnCallback {Function} :: optional, params: @err {Error}, @count {Number}
+	Read data from database
+	@fnCallback {Function} :: params: @err {Error}, @doc {Object}, @offset {Number}
 	return {Database}
 */
-Database.prototype.update = function(fnUpdate, fnCallback) {
+Database.prototype.each = function(fnCallback) {
+	
 	var self = this;
 
-	if (self.isLocked) {
-		self.pending.push(function() {
-			self.update(fnUpdate, fnCallback);
-		});
+	if (self.status === STATUS_LOCKING || self.countRead >= MAX_READSTREAM) {
+
+		if (fnCallback)
+			self.pendingEach.push(fnCallback);
+
 		return self;
 	}
 
 	var reader = fs.createReadStream(self.filename);
-	var writer = fs.createWriteStream(self.filenameTemp, '');
 
-	self.isLocked = true;
-	self.isScalar = false;
-	self.count = 0;
-	self.current = '';
+	self.emit('each');
 
-	var fnWrite = function(obj) {
-		writer.write(JSON.stringify(obj) + '\n');
+	// opened streams
+	self.countRead++;
+	self.status = STATUS_READING;
+
+	var current = '';
+	var count = 0;
+	var operation = [];
+
+	if (fnCallback)
+		operation.push(fnCallback);
+
+	self.pendingEach.forEach(function(fn) {
+		operation.push(fn);
+	});
+
+	self.pendingEach = [];
+
+	var fnBuffer = function(buffer) {
+		current += buffer;
+		return current;
+	};
+
+	var fnItem = function(err, doc, cancel) {
+
+		// clear buffer;
+		current = '';
+
+		if (err)
+			return;
+
+		operation.forEach(function(fn) {
+			fn(doc, count);
+		});
+
+		count++;
 	};
 
 	reader.on('data', function(buffer) {
-		var data = buffer.toString();
-		self.updateValue(data, fnUpdate, fnWrite);
+		onBuffer(buffer.toString(), fnItem, fnBuffer, fnCancel);
 	});
 
 	reader.on('end', function() {
-		fs.rename(self.filenameTemp, self.filename, function(err) {
-			self.isLocked = false;
-			fnCallback && fnCallback(null, self.count);
-			self.next();
-		});
+		self.countRead--;
+		self.next();
 	});
 
 	reader.on('error', function(err) {
-		self.isLocked = false;
-		fnCallback(err, self.count);
+		self.countRead--;
 		self.next();
 	});
 
@@ -384,31 +371,111 @@ Database.prototype.update = function(fnUpdate, fnCallback) {
 
 /*
 	Internal function
-	@data {String}
 	@fnFilter {Function}
-	@fnWrite {Function}
+	@fnCallback {Function}
+	return {Database}
 */
-Database.prototype.removeValue = function(data, fnFilter, fnWrite) {
+function updatePrepare(fnUpdate, fnCallback) {
 
+	if (typeof(fnUpdate) === 'string')
+		fnUpdate = eval('(function(doc){' + (fnUpdate.indexOf('return ') === -1 ? 'return ' : '') + fnUpdate + '})');
+
+	return { filter: fnUpdate, callback: fnCallback, count: 0 };
+};
+
+/*
+	Update multiple documents
+	fnUpdate {Function} :: params: @doc {Object} and must return updated @doc;
+	fnCallback {Function} :: optional, params: @err {Error}, @count {Number}
+	return {Database}
+*/
+Database.prototype.update = function(fnUpdate, fnCallback) {
 	var self = this;
-	var index = data.indexOf('\n');
 
-	if (index === -1) {
-		self.current += data;
-		return;
+	if (self.status !== STATUS_UNKNOWN) {
+	
+		if (typeof(fnUpdate) !== 'undefined')		
+			self.pendingLock.push(updatePrepare(fnUpdate, fnCallback));
+		
+		return self;
 	}
 
-	self.current += data.substring(0, index);
-	
-	var obj = JSON.parse(self.current); 
+	self.status = STATUS_LOCKING;
 
-	if (!fnFilter(obj))
-		fnWrite(obj);
-	else
-		self.count++;
+	var reader = fs.createReadStream(self.filename);
+	var writer = fs.createWriteStream(self.filenameTemp, '');
+	var current = '';
+	var operation = [];
 
-	self.current = '';
-	self.removeValue(data.substring(index + 1), fnFilter, fnWrite);
+	if (typeof(fnUpdate) !== 'undefined')
+		operation.push(updatePrepare(fnUpdate, fnCallback));
+
+	self.pendingLock.forEach(function(fn) {		
+		operation.push(fn);
+	});
+
+	self.emit('update/remove');
+	self.pendingLock = [];
+
+	var fnWrite = function(obj) {
+		writer.write(JSON.stringify(obj) + '\n');
+	};
+
+	var fnBuffer = function(buffer) {
+		current += buffer;
+		return current;
+	};
+
+	var fnItem = function(err, doc, cancel) {
+
+		// clear buffer;
+		current = '';
+
+		var skip = false;
+		var value = null;
+
+		operation.forEach(function(fn) {
+
+			value = fn.filter(doc) || null;
+
+			if (value === null) {
+				fn.count++;
+				return;
+			}
+		});
+
+		if (value === null)
+			return;
+
+		fnWrite(value);
+	};
+
+	reader.on('data', function(buffer) {
+		onBuffer(buffer.toString(), fnItem, fnBuffer);
+	});
+
+	reader.on('end', function() {
+		fs.rename(self.filenameTemp, self.filename, function(err) {
+
+			operation.forEach(function(o) {
+				if (o.callback)
+					(function(cb, count) { setImmediate(function() { cb(null, count); }); })(o.callback, o.count);
+			});
+			
+			self.next();
+		});
+	});
+
+	reader.on('error', function(err) {
+
+		operation.forEach(function(o) {
+			(function(cb, count) { setImmediate(function() { cb(null, count); }); })(o.callback, o.count);
+		});
+
+		self.next();
+	});
+
+	return self;
 };
 
 /*
@@ -421,47 +488,18 @@ Database.prototype.remove = function(fnFilter, fnCallback) {
 
 	var self = this;
 
-	if (self.isLocked) {
-		self.pending.push(function() {
-			self.remove(fnFilter, fnCallback);
-		});
-		return self;
-	}
-
 	if (typeof(fnFilter) === 'string')
 		fnFilter = eval('(function(doc){' + (fnFilter.indexOf('return ') === -1 ? 'return ' : '') + fnFilter + '})');
 
-	var reader = fs.createReadStream(self.filename);
-	var writer = fs.createWriteStream(self.filenameTemp, '');
+	var filter = function(item) {
 
-	self.isLocked = true;
-	self.isScalar = false;
-	self.count = 0;
-	self.current = '';
+		if (fnFilter(item))
+			return null;
 
-	var fnWrite = function(obj) {
-		writer.write(JSON.stringify(obj) + '\n');
+		return item;
 	};
 
-	reader.on('data', function(buffer) {
-		var data = buffer.toString();
-		self.removeValue(data, fnFilter, fnWrite);
-	});
-
-	reader.on('end', function() {
-		fs.rename(self.filenameTemp, self.filename, function(err) {
-			self.isLocked = false;
-			fnCallback && fnCallback(null, self.count);
-			self.next();
-		});
-	});
-
-	reader.on('error', function(err) {
-		self.isLocked = false;
-		fnCallback(err, self.count);
-		self.next();
-	});
-
+	self.update(filter, fnCallback);
 	return self;
 };
 
@@ -471,11 +509,52 @@ Database.prototype.remove = function(fnFilter, fnCallback) {
 Database.prototype.next = function() {
 
 	var self = this;
-	if (self.pending.length === 0)
-		return;
+	self.status = STATUS_UNKNOWN;
 
-	var fn = self.pending.shift();
-	fn();
+	// ReadStream is open, ... waiting for close
+	if (self.countRead > 0) {
+		self.status = STATUS_READING;
+		return;
+	}
+
+	// WriteStream is open, ... waiting for close
+	if (self.countWrite > 0) {
+		self.status = STATUS_WRITING;
+		return;
+	}
+
+	if (self.pendingWrite.length > 0) {
+		self.bulk(self.pendingWrite);
+		self.pendingWrite = [];
+	}
+
+	// large operation (truncate file)
+	if (self.pendingLock.length > 0) {
+		self.update();
+		return;
+	}
+
+	if (self.pendingEach.length > 0) {
+		self.each();
+		return;
+	}
+
+	if (self.pendingRead.length > 0) {
+
+		var max = self.pendingRead.length;
+
+		if (max > MAX_READSTREAM)
+			max = MAX_READSTREAM;
+
+		for (var i = 0; i < max; i++)
+			self.shift()();
+
+		return;
+	}
+
+	setImmediate(function() {
+		self.emit('complete');
+	});
 };
 
 exports.database = Database;
