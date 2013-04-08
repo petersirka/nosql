@@ -51,6 +51,7 @@ if (typeof(setImmediate) === 'undefined') {
 */
 function Database(filename) {
 	
+	this.status_prev = STATUS_UNKNOWN;
 	this.status = STATUS_UNKNOWN;
 	this.current = '';
 
@@ -100,9 +101,6 @@ Database.prototype.bulk = function(arr, fnCallback) {
 		return self;
 	}
 
-	self.status = STATUS_WRITING;
-	self.countWrite++;
-
 	var builder = [];
 
 	arr.forEach(function(doc) {
@@ -112,6 +110,14 @@ Database.prototype.bulk = function(arr, fnCallback) {
 
 		builder.push(doc);
 	});
+
+	if (builder.length === 0) {
+		self.next();
+		return;
+	}
+
+	self.status = STATUS_WRITING;
+	self.countWrite++;
 
 	self.emit('insert', builder.length);
 	fs.appendFile(self.filename, builder.join('\n') + '\n', { encoding: encoding }, function(err) {
@@ -313,6 +319,20 @@ Database.prototype.each = function(fnCallback) {
 		return self;
 	}
 
+	var operation = [];
+
+	if (fnCallback)
+		operation.push(fnCallback);
+
+	self.pendingEach.forEach(function(fn) {
+		operation.push(fn);
+	});
+
+	if (operation.length === 0) {
+		self.next();
+		return;
+	}
+
 	var reader = fs.createReadStream(self.filename);
 
 	self.emit('each');
@@ -323,14 +343,6 @@ Database.prototype.each = function(fnCallback) {
 
 	var current = '';
 	var count = 0;
-	var operation = [];
-
-	if (fnCallback)
-		operation.push(fnCallback);
-
-	self.pendingEach.forEach(function(fn) {
-		operation.push(fn);
-	});
 
 	self.pendingEach = [];
 
@@ -396,10 +408,24 @@ Database.prototype.update = function(fnUpdate, fnCallback) {
 
 	if (self.status !== STATUS_UNKNOWN) {
 	
-		if (typeof(fnUpdate) !== 'undefined')		
+		if (typeof(fnUpdate) !== 'undefined')
 			self.pendingLock.push(updatePrepare(fnUpdate, fnCallback));
 		
 		return self;
+	}
+
+	var operation = [];
+
+	if (typeof(fnUpdate) !== 'undefined')
+		operation.push(updatePrepare(fnUpdate, fnCallback));
+
+	self.pendingLock.forEach(function(fn) {
+		operation.push(fn);
+	});
+
+	if (operation.length === 0) {
+		self.next();
+		return;
 	}
 
 	self.status = STATUS_LOCKING;
@@ -407,14 +433,6 @@ Database.prototype.update = function(fnUpdate, fnCallback) {
 	var reader = fs.createReadStream(self.filename);
 	var writer = fs.createWriteStream(self.filenameTemp, '');
 	var current = '';
-	var operation = [];
-
-	if (typeof(fnUpdate) !== 'undefined')
-		operation.push(updatePrepare(fnUpdate, fnCallback));
-
-	self.pendingLock.forEach(function(fn) {		
-		operation.push(fn);
-	});
 
 	self.emit('update/remove');
 	self.pendingLock = [];
@@ -480,6 +498,21 @@ Database.prototype.update = function(fnUpdate, fnCallback) {
 	return self;
 };
 
+Database.prototype.updateMultiple = function(fnUpdate, fnCallback) {
+	var self = this;
+
+	if (typeof(fnUpdate) !== 'undefined')
+		self.pendingLock.push(updatePrepare(fnUpdate, fnCallback));
+
+	return self;
+};
+
+Database.prototype.updateFlush = function() {
+	var self = this;
+	self.update();
+	return self;	
+};
+
 /*
 	Remove data from database
 	@fnFilter {Function} :: params: @obj {Object}, return TRUE | FALSE
@@ -506,13 +539,24 @@ Database.prototype.remove = function(fnFilter, fnCallback) {
 };
 
 Database.prototype.pause = function() {	
+	var self = this;
+
 	self.isPending = true;
+
+	if (self.status === STATUS_UNKNOWN) {
+		self.status = STATUS_PENDING;
+		self.emit('pause');
+	}
+
+	return self;
 };
 
 Database.prototype.resume = function() {
+	var self = this;
 	self.isPending = false;
 	self.emit('resume');
-	next();
+	self.next();
+	return self;
 };
 
 /*
@@ -523,13 +567,14 @@ Database.prototype.next = function() {
 	var self = this;
 
 	if (self.isPending) {
-		if (sel.status !== STATUS_PENDING) {
+		if (self.status !== STATUS_PENDING) {
 			self.status = STATUS_PENDING;
 			self.emit('pause');
 		}
 		return;
 	}
-
+	
+	self.status_prev = self.status;
 	self.status = STATUS_UNKNOWN;
 
 	// ReadStream is open, ... waiting for close
@@ -568,13 +613,13 @@ Database.prototype.next = function() {
 			max = MAX_READSTREAM;
 
 		for (var i = 0; i < max; i++)
-			self.shift()();
+			self.pendingRead.shift()();
 
 		return;
 	}
 
 	setImmediate(function() {
-		self.emit('complete');
+		self.emit('complete', self.status_prev);
 	});
 };
 

@@ -4,7 +4,7 @@ var nosql = require('../index');
 var db = nosql.load(filename);
 var assert = require('assert');
 
-var write = false;
+var write = true;
 var read = true;
 var remove = true;
 
@@ -15,8 +15,19 @@ db.on('insert', function(count) {
 	console.log('insert ---> ', count);
 });
 
-db.on('complete', function() {
-	console.log('complete');
+db.on('pause', function() {
+	console.log('PAUSE');
+	setTimeout(function() {
+		db.resume();
+	}, 4000);
+});
+
+db.on('resume', function() {
+	console.log('RESUME');
+});
+
+db.on('complete', function(status) {
+	console.log('complete --> ', status);
 });
 
 if (write) {
@@ -29,6 +40,8 @@ if (write) {
 
 if (read) {
 	setTimeout(function() {
+
+		db.pause();
 		db.read('doc.index > 0 && doc.index < 5', function(err, selected) {
 			
 			var str = '';
