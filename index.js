@@ -34,6 +34,7 @@ var STATUS_UNKNOWN = 0;
 var STATUS_READING = 1;
 var STATUS_WRITING = 2;
 var STATUS_LOCKING = 3;
+var STATUS_PENDING = 4;
 
 var MAX_WRITESTREAM = 2;
 var MAX_READSTREAM  = 4;
@@ -60,6 +61,8 @@ function Database(filename) {
 	this.pendingEach = [];
 	this.pendingWrite = [];
 	this.pendingLock = [];
+
+	this.isPending = false;
 
 	this.filename = filename;
 	this.filenameTemp = filename + '.tmp';
@@ -88,7 +91,7 @@ Database.prototype.insert = function(doc, fnCallback) {
 Database.prototype.bulk = function(arr, fnCallback) {
 	var self = this;
 
-	if (self.status === STATUS_LOCKING || self.countWrite >= MAX_WRITESTREAM) {
+	if (self.status === STATUS_LOCKING|| self.status === STATUS_PENDING || self.countWrite >= MAX_WRITESTREAM) {
 
 		arr.forEach(function(o) {
 			self.pendingWrite.push(o);
@@ -158,7 +161,7 @@ Database.prototype.read = function(fnFilter, fnCallback, itemSkip, itemTake, isS
 	var skip = itemSkip || 0;
 	var take = itemTake || 0;
 
-	if (self.status === STATUS_LOCKING || self.countRead >= MAX_READSTREAM) {
+	if (self.status === STATUS_LOCKING || self.status === STATUS_PENDING || self.countRead >= MAX_READSTREAM) {
 		
 		self.pendingRead.push(function() {
 			self.read(fnFilter, fnCallback, itemSkip, itemTake, isScalar);
@@ -303,7 +306,7 @@ Database.prototype.each = function(fnCallback) {
 	
 	var self = this;
 
-	if (self.status === STATUS_LOCKING || self.countRead >= MAX_READSTREAM) {
+	if (self.status === STATUS_LOCKING || self.status === STATUS_PENDING || self.countRead >= MAX_READSTREAM) {
 
 		if (fnCallback)
 			self.pendingEach.push(fnCallback);
@@ -503,12 +506,31 @@ Database.prototype.remove = function(fnFilter, fnCallback) {
 	return self;
 };
 
+Database.prototype.pause = function() {	
+	self.isPending = true;
+};
+
+Database.prototype.resume = function() {
+	self.isPending = false;
+	self.emit('resume');
+	next();
+};
+
 /*
 	Internal function
 */
 Database.prototype.next = function() {
 
 	var self = this;
+
+	if (self.isPending) {
+		if (sel.status !== STATUS_PENDING) {
+			self.status = STATUS_PENDING;
+			self.emit('pause');
+		}
+		return;
+	}
+
 	self.status = STATUS_UNKNOWN;
 
 	// ReadStream is open, ... waiting for close
