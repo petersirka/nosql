@@ -10,6 +10,12 @@ node.js NoSQL embedded database
 * asynchronous write & read
 * __no dependencies__
 
+## Best practices
+
+* for updates use more nosql.prepare(fn) and then nosql.update();
+* if you want finding more different documents use nosql.each();
+* do not place more different types document to one file, use more database files
+
 ## Installation
 
 ```
@@ -30,7 +36,7 @@ var nosql = require('nosql').load('/users/petersirka/desktop/database.nosql');
 // nosql.insert(doc, fnCallback);
 // ============================================================================
 
-var callback = function(doc) {
+var callback = function(doc, count) {
 	// optional
 };
 
@@ -57,6 +63,9 @@ nosql.update(function(doc) {
 	if (doc.name === 'Peter')
 		doc.name = 'Jano';
 
+	// if return null or undefined - document will be removed
+	// if return {Object}, document will be replaced
+
 	return doc;
 });
 
@@ -72,8 +81,13 @@ nosql.prepare(function(doc) {
 });
 
 nosql.prepare(function(doc) {
+	
 	if (doc.index === 2320)
 		doc.name = 'Peter';
+
+	// if return null or undefined - document will be removed
+	// if return {Object}, document will be replaced
+
 	return doc;
 });
 
