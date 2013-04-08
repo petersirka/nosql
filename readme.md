@@ -96,7 +96,7 @@ nosql.update();
 // nosql.each(fnCallback);
 // ============================================================================
 
-var callback = function(err, selected) {
+var callback = function(selected) {
 	
 	var users = [];
 	selected.forEach(function(o) {
