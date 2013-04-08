@@ -7,6 +7,7 @@ node.js NoSQL embedded database
 * quick, simple, effective
 * insert, update, read, remove
 * easy filtering documents
+* asynchronous write & read
 * __no dependencies__
 
 ## Installation
