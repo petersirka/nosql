@@ -3,20 +3,14 @@
 node.js NoSQL embedded database
 ===============================
 
-* small and effective embedded database
-* written in JavaScript
-* data are saved to one file as text file
-* easy editing in e.g. notepad
-* quick, simple, effective
-* easy filtering documents
-* asynchronous insert, read, update, remove
-* __no dependencies__
-
-## Best practices
-
-* for updates use more nosql.prepare(fn) and then nosql.update();
-* if you want finding more different documents use nosql.each();
-* do not place more different types document to one file, use more database files
+* Written in JavaScript
+* Small and effective embedded database
+* Data are saved to one file as text file
+* Easy editing in e.g. notepad
+* Quick, simple, effective
+* Easy filtering documents
+* Asynchronous insert, read, update, remove
+* __No dependencies__
 
 ## Installation
 
@@ -133,8 +127,8 @@ nosql.all('doc.age > 24 && doc.age < 36');
 // nosql.remove(fnFilter, fnCallback);
 // ============================================================================
 
-var callback = function(count) {
-	console.log('Removed ' + count + ' documents');
+var callback = function() {
+	console.log('Removed');
 });
 
 var filter = function(doc) {
