@@ -6,13 +6,17 @@ var assert = require('assert');
 
 var write = true;
 var read = true;
-var remove = true;
+var remove = false;
 
 var indexComplete = 0;
 var indexInsert = 0;
 
 db.on('insert', function(count) {
 	console.log('insert ---> ', count);
+});
+
+db.on('error', function(err, name) {
+	console.log('error ---> ', err, name);
 });
 
 db.on('pause', function() {
@@ -24,6 +28,10 @@ db.on('pause', function() {
 
 db.on('resume', function() {
 	console.log('RESUME');
+});
+
+db.on('each', function() {
+	console.log('each ---> ');
 });
 
 db.on('complete', function(status) {
@@ -42,7 +50,7 @@ if (read) {
 	setTimeout(function() {
 
 		db.pause();
-		db.read('doc.index > 0 && doc.index < 5', function(err, selected) {
+		db.read('doc.index > 0 && doc.index < 5', function(selected) {
 			
 			var str = '';
 			
@@ -61,13 +69,20 @@ if (read) {
 			console.log(selected);			
 		}, 1, 3);
 
-		db.read('doc.index > 100 && doc.index < 105', function(err, selected) {
+		db.read('doc.index > 100 && doc.index < 105', function(selected) {
 			console.log(selected);
 		}, 1, 3);
+
+
+		db.each(function(o) {
+			if (o.index === 4300)
+				console.log(o);
+		});
+
 	}, 500);
 }
 
-db.one('doc.index === 89080', function(err, doc) {
+db.one('doc.index === 89080', function(doc) {
 	console.log(doc);
 });
 
@@ -78,18 +93,18 @@ setTimeout(function() {
 			o.index = 10000;
 		return o;
 	});
-}, 2000);
+}, 2000);*/
 
 setTimeout(function() {
-	db.scalar(null, function(err, count) {
+	db.scalar(null, function(count) {
 		console.log('scalar -––> ', count);
 	});
 }, 1500);
 
 if (remove) {
 	setTimeout(function() {
-		db.remove('doc.index > 105', function(err, count) {
-			console.log(count);
+		db.remove('doc.index > 105', function(count) {
+			console.log('remove ---> ', count);
 		});
-	}, 1000);
-}*/
+	}, 5000);
+}

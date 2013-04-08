@@ -74,7 +74,7 @@ Database.prototype = new events.EventEmitter;
 /*
 	Write data to database
 	@doc {Object}
-	@fnCallback {Function} :: optional, params: @err {Error}, @doc {Object}
+	@fnCallback {Function} :: optional, params: @doc {Object}
 	return {Database}
 */
 Database.prototype.insert = function(doc, fnCallback) {
@@ -86,7 +86,7 @@ Database.prototype.insert = function(doc, fnCallback) {
 /*
 	Write bulk data to database
 	@arr {Array of Object}
-	@fnCallback {Function} :: optional, params: @err {Error}, @count {Number}
+	@fnCallback {Function} :: optional, params: count {Number}
 	return {Database}
 */
 Database.prototype.bulk = function(arr, fnCallback) {
@@ -97,7 +97,10 @@ Database.prototype.bulk = function(arr, fnCallback) {
 		arr.forEach(function(o) {
 			self.pendingWrite.push(o);
 		});
-		
+				
+		if (fnCallback)
+			fnCallback(-1);
+
 		return self;
 	}
 
@@ -122,11 +125,14 @@ Database.prototype.bulk = function(arr, fnCallback) {
 	self.emit('insert', builder.length);
 	fs.appendFile(self.filename, builder.join('\n') + '\n', { encoding: encoding }, function(err) {
 
+		if (err)
+			self.emit('error', err, 'insert-stream');
+
 		self.countWrite--;
 		self.next();
 
 		if (fnCallback)
-			setImmediate(function() { fnCallback(err, doc); });
+			setImmediate(function() { fnCallback(doc); });
 
 	});
 
@@ -136,7 +142,7 @@ Database.prototype.bulk = function(arr, fnCallback) {
 function onBuffer(buffer, fnItem, fnBuffer, fnCancel) {
 
 	var index = buffer.indexOf('\n');
-
+	
 	if (index === -1) {
 		fnBuffer(buffer);
 		return;
@@ -155,7 +161,7 @@ function onBuffer(buffer, fnItem, fnBuffer, fnCancel) {
 /*
 	Read data from database
 	@fnFilter {Function} :: params: @doc {Object}, return TRUE | FALSE
-	@fnCallback {Function} :: params: @err {Error}, @selected {Array of Object}
+	@fnCallback {Function} :: params: @selected {Array of Object}
 	@itemSkip {Number} :: optional
 	@itemTake {Number} :: optional
 	@isScalar {Boolean} :: optional, default is false 
@@ -243,13 +249,14 @@ Database.prototype.read = function(fnFilter, fnCallback, itemSkip, itemTake, isS
 	reader.on('end', function() {
 		self.countRead--;
 		self.next();
-		setImmediate(function() { fnCallback(null, isScalar ? count : selected); });
+		setImmediate(function() { fnCallback(isScalar ? count : selected); });
 	});
 
 	reader.on('error', function(err) {
+		self.emit('error', err, 'read-stream');
 		self.countRead--;
 		self.next();
-		setImmediate(function() { fnCallback(err, isScalar ? count : []); });
+		setImmediate(function() { fnCallback(isScalar ? count : []); });
 	});
 
 	return self;
@@ -258,7 +265,7 @@ Database.prototype.read = function(fnFilter, fnCallback, itemSkip, itemTake, isS
 /*
 	Read data from database
 	@fnFilter {Function} :: must return {Boolean};
-	@fnCallback {Function} :: params: @err {Error}, @doc {Array of Object}
+	@fnCallback {Function} :: params: @doc {Array of Object}
 	@itemSkip {Number} :: optional, default 0
 	@itemTake {Number} :: optional, default 0
 	return {Database}
@@ -270,13 +277,13 @@ Database.prototype.all = function(fnFilter, fnCallback, itemSkip, itemTake) {
 /*
 	Read data from database
 	@fnFilter {Function} :: must return {Boolean};
-	@fnCallback {Function} :: params: @err {Error}, @doc {Object}
+	@fnCallback {Function} :: params: @doc {Object}
 	return {Database}
 */
 Database.prototype.one = function(fnFilter, fnCallback) {
 
-	var cb = function(err, selected) {
-		fnCallback(err, selected[0] || null);
+	var cb = function(selected) {
+		fnCallback(selected[0] || null);
 	};
 
 	return this.read(fnFilter, cb, 0, 1, false, 'one');
@@ -285,7 +292,7 @@ Database.prototype.one = function(fnFilter, fnCallback) {
 /*
 	Read TOP data from database
 	@fnFilter {Function} :: must return {Boolean};
-	@fnCallback {Function} :: params: @err {Error}, @doc {Object}
+	@fnCallback {Function} :: params: @doc {Object}
 	return {Database}
 */
 Database.prototype.top = function(max, fnFilter, fnCallback) {
@@ -295,7 +302,7 @@ Database.prototype.top = function(max, fnFilter, fnCallback) {
 /*
 	Scalar
 	@fnFilter {Function} :: params: @doc {Object}, return TRUE | FALSE
-	@fnCallback {Function} :: params: @err {Error}, @count {Number}
+	@fnCallback {Function} :: params: @count {Number}
 	return {Database}
 */
 Database.prototype.scalar = function(fnFilter, fnCallback) {
@@ -304,7 +311,7 @@ Database.prototype.scalar = function(fnFilter, fnCallback) {
 
 /*
 	Read data from database
-	@fnCallback {Function} :: params: @err {Error}, @doc {Object}, @offset {Number}
+	@fnCallback {Function} :: params: @doc {Object}, @offset {Number}
 	return {Database}
 */
 Database.prototype.each = function(fnCallback) {
@@ -356,11 +363,20 @@ Database.prototype.each = function(fnCallback) {
 		// clear buffer;
 		current = '';
 
-		if (err)
+		if (err) {
+			self.emit('error', err);
 			return;
+		}
 
 		operation.forEach(function(fn) {
-			fn(err, doc, count);
+			try
+			{
+			
+				fn(doc, count);
+			
+			} catch (e) {
+				self.emit('error', e);
+			}
 		});
 
 		count++;
@@ -376,6 +392,7 @@ Database.prototype.each = function(fnCallback) {
 	});
 
 	reader.on('error', function(err) {
+		self.emit('error', err, 'each-stream');
 		self.countRead--;
 		self.next();
 	});
@@ -400,7 +417,7 @@ function updatePrepare(fnUpdate, fnCallback) {
 /*
 	Update multiple documents
 	fnUpdate {Function} :: params: @doc {Object} and must return updated @doc;
-	fnCallback {Function} :: optional, params: @err {Error}, @count {Number}
+	fnCallback {Function} :: optional, @count {Number}
 	return {Database}
 */
 Database.prototype.update = function(fnUpdate, fnCallback) {
@@ -434,7 +451,7 @@ Database.prototype.update = function(fnUpdate, fnCallback) {
 	var writer = fs.createWriteStream(self.filenameTemp, '');
 	var current = '';
 
-	self.emit('update/remove');
+	self.emit('update');
 	self.pendingLock = [];
 
 	var fnWrite = function(obj) {
@@ -477,9 +494,12 @@ Database.prototype.update = function(fnUpdate, fnCallback) {
 	reader.on('end', function() {
 		fs.rename(self.filenameTemp, self.filename, function(err) {
 
+			if (err)
+				self.emit('error', err, 'update-rename-file');
+
 			operation.forEach(function(o) {
 				if (o.callback)
-					(function(cb, count) { setImmediate(function() { cb(null, count); }); })(o.callback, o.count);
+					(function(cb, count) { setImmediate(function() { cb(count); }); })(o.callback, o.count);
 			});
 			
 			self.next();
@@ -488,8 +508,10 @@ Database.prototype.update = function(fnUpdate, fnCallback) {
 
 	reader.on('error', function(err) {
 
+		self.emit('error', err, 'update-stream');
+
 		operation.forEach(function(o) {
-			(function(cb, count) { setImmediate(function() { cb(null, count); }); })(o.callback, o.count);
+			(function(cb, count) { setImmediate(function() { cb(count); }); })(o.callback, o.count);
 		});
 
 		self.next();
@@ -498,7 +520,13 @@ Database.prototype.update = function(fnUpdate, fnCallback) {
 	return self;
 };
 
-Database.prototype.updateMultiple = function(fnUpdate, fnCallback) {
+/*
+	Update multiple documents
+	fnUpdate {Function} :: params: @doc {Object} and must return updated @doc;
+	fnCallback {Function} :: optional, @count {Number}
+	return {Database}
+*/
+Database.prototype.prepare = function(fnUpdate, fnCallback) {
 	var self = this;
 
 	if (typeof(fnUpdate) !== 'undefined')
@@ -605,6 +633,7 @@ Database.prototype.next = function() {
 		return;
 	}
 
+	// read data
 	if (self.pendingRead.length > 0) {
 
 		var max = self.pendingRead.length;

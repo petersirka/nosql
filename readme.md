@@ -30,13 +30,23 @@ var nosql = require('nosql').load('/users/petersirka/desktop/database.nosql');
 // nosql.insert(doc, fnCallback);
 // ============================================================================
 
-var callback = function(err, doc) {
+var callback = function(doc) {
 	// optional
 };
 
 nosql.insert({ firstName: 'Peter', lastName: 'Širka', age: 28 }, callback);
 nosql.insert({ firstName: 'Fero', lastName: 'Samo', age: 40 }, callback);
 nosql.insert({ firstName: 'Juraj', lastName: 'Hundo', age: 28 }, callback);
+
+// BULK INSERT
+// nosql.bulk(array, fnCallback);
+// ============================================================================
+
+var callback = function(count) {
+	console.log('INSERTED: ' + count);
+};
+
+nosql.bulk([{ firstName: 'Peter', lastName: 'Širka', age: 28 }, { firstName: 'Fero', lastName: 'Samo', age: 40 }, { firstName: 'Juraj', lastName: 'Hundo', age: 28 }], callback);
 
 // UPDATE
 // nosql.update(fnUpdate, fnCallback);
@@ -50,15 +60,24 @@ nosql.update(function(doc) {
 	return doc;
 });
 
-// BULK INSERT
-// nosql.bulk(array, fnCallback);
+// MULTIPLE UPDATE
+// nosql.prepare(fnUpdate, fnCallback);
+// nosql.update();
 // ============================================================================
 
-var callback = function(err, count) {
-	console.log('INSERTED: ' + count);
-};
+nosql.prepare(function(doc) {
+	if (doc.name === 'Peter')
+		doc.name = 'Jano';
+	return doc;
+});
 
-nosql.bulk([{ firstName: 'Peter', lastName: 'Širka', age: 28 }, { firstName: 'Fero', lastName: 'Samo', age: 40 }, { firstName: 'Juraj', lastName: 'Hundo', age: 28 }], callback);
+nosql.prepare(function(doc) {
+	if (doc.index === 2320)
+		doc.name = 'Peter';
+	return doc;
+});
+
+nosql.update();
 
 // READ DATA
 // nosql.all(fnFilter, fnCallback, itemSkip, itemTake);
@@ -85,9 +104,9 @@ var filter = function(doc) {
 };
 
 nosql.all(filter, callback);
-nosql.one(filter, function(err, doc) {});
+nosql.one(filter, function(doc) {});
 nosql.top(5, filter, callback);
-nosql.each(function(err, doc, offset) {});
+nosql.each(function(doc, offset) {});
 
 // FILTER can be a string
 // eval is bad, but sometimes is very helpful
@@ -98,7 +117,7 @@ nosql.all('doc.age > 24 && doc.age < 36');
 // nosql.remove(fnFilter, fnCallback);
 // ============================================================================
 
-var callback = function(err, count) {
+var callback = function(count) {
 	console.log('Removed ' + count + ' documents');
 });
 
