@@ -127,6 +127,25 @@ var filter = function(doc) {
 
 nosql.remove(filter, callback);
 
+// OTHERS
+// ============================================================================
+
+nosql.pause();
+nosql.resume();
+
+// EVENTS
+// ============================================================================
+
+nosql.on('error', function(err, source) {});
+nosql.on('pause', function() {});
+nosql.on('resume', function() {});
+nosql.on('insert', function(count) {});
+nosql.on('update/remove', function() {});
+nosql.on('all', function() {});
+nosql.on('one', function() {});
+nosql.on('top', function() {});
+nosql.on('each', function() {});
+nosql.on('complete', function(old_status) {});
 ```
 
 ## The MIT License

@@ -451,7 +451,7 @@ Database.prototype.update = function(fnUpdate, fnCallback) {
 	var writer = fs.createWriteStream(self.filenameTemp, '');
 	var current = '';
 
-	self.emit('update');
+	self.emit('update/remove');
 	self.pendingLock = [];
 
 	var fnWrite = function(obj) {
