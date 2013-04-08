@@ -1,13 +1,15 @@
+[![NoSQL embedded database](http://partialjs.com/exports/nosql-logo.png)](https://github.com/petersirka/nosql)
+
 node.js NoSQL embedded database
 ===============================
 
+* small and effective embedded database
 * written in JavaScript
 * data are saved to one file as text file
 * easy editing in e.g. notepad
 * quick, simple, effective
-* insert, update, read, remove
 * easy filtering documents
-* asynchronous write & read
+* asynchronous insert, read, update, remove
 * __no dependencies__
 
 ## Best practices

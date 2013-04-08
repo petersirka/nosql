@@ -6,7 +6,7 @@ var assert = require('assert');
 
 var write = true;
 var read = true;
-var remove = false;
+var remove = true;
 
 var indexComplete = 0;
 var indexInsert = 0;
@@ -86,25 +86,32 @@ db.one('doc.index === 89080', function(doc) {
 	console.log(doc);
 });
 
-/*
+setTimeout(function() {
+	db.top(5, 'doc.index < 15', function(selected) {
+		console.log('TOP', selected);
+	});
+}, 500);
+
 setTimeout(function() {
 	db.update(function(o) {
 		if (o.index > 10 && o.index < 20)
 			o.index = 10000;
 		return o;
+	}, function() {
+		console.log('UPDATED');
 	});
-}, 2000);*/
+}, 6000);
 
 setTimeout(function() {
 	db.scalar(null, function(count) {
-		console.log('scalar -––> ', count);
+		console.log('scalar');
 	});
-}, 1500);
+}, 2000);
 
 if (remove) {
 	setTimeout(function() {
-		db.remove('doc.index > 105', function(count) {
-			console.log('remove ---> ', count);
+		db.remove('doc.index > 105', function() {
+			console.log('remove');
 		});
 	}, 5000);
 }
