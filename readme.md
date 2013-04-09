@@ -42,7 +42,7 @@ nosql.insert({ firstName: 'Fero', lastName: 'Samo', age: 40 }, callback);
 nosql.insert({ firstName: 'Juraj', lastName: 'Hundo', age: 28 }, callback);
 
 // BULK INSERT
-// nosql.bulk(array, fnCallback);
+// nosql.insert(array, fnCallback);
 // ============================================================================
 
 var callback = function(count) {
