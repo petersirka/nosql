@@ -146,10 +146,9 @@ Database.prototype.insert = function(arr, fnCallback) {
 
 	appendFile(self.filename, arr, function() {
 
-		self.countWrite--;
-		self.next();
-		
+		self.countWrite--;		
 		self.emit('insert', false, builder.length);
+		self.next();
 
 		if (fnCallback)
 			setImmediate(function() { fnCallback(doc); });
@@ -552,18 +551,14 @@ Database.prototype.drop = function(fnCallback) {
 Database.prototype.update = function(fnUpdate, fnCallback, type) {
 	var self = this;
 
-	if (self.status !== STATUS_UNKNOWN) {
-	
-		if (typeof(fnUpdate) !== 'undefined')
-			self.pendingLock.push(updatePrepare(fnUpdate, fnCallback, type || 'update'));
+	if (typeof(fnUpdate) !== 'undefined')
+		self.pendingLock.push(updatePrepare(fnUpdate, fnCallback, type || 'update'));
 		
+	if (self.status !== STATUS_UNKNOWN) {
 		return self;
 	}
 
 	var operation = [];
-
-	if (typeof(fnUpdate) !== 'undefined')
-		operation.push(updatePrepare(fnUpdate, fnCallback, type || 'update'));
 
 	self.pendingLock.forEach(function(fn) {
 		operation.push(fn);
@@ -585,7 +580,7 @@ Database.prototype.update = function(fnUpdate, fnCallback, type) {
 
 	var countRemove = 0;
 	var countUpdate = 0;
-
+	
 	self.emit('update/remove', true, 0, 0);
 	self.pendingLock = [];
 
@@ -786,6 +781,7 @@ Database.prototype.next = function() {
 	if (self.pendingWrite.length > 0) {
 		self.insert(self.pendingWrite);
 		self.pendingWrite = [];
+		return;
 	}
 
 	// large operation (truncate file)

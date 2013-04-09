@@ -55,7 +55,6 @@ if (write) {
 if (read) {
 	setTimeout(function() {
 
-		db.pause();
 		db.read('doc.index > 0 && doc.index < 5', function(selected) {
 			
 			var str = '';
@@ -110,7 +109,7 @@ setTimeout(function() {
 		console.log('UPDATED');
 	});
 
-}, 6000);
+}, 5000);
 
 /*
 setTimeout(function() {
@@ -132,5 +131,5 @@ if (remove) {
 		db.remove('doc.index > 105', function() {
 			console.log('remove');
 		});
-	}, 5000);
+	}, 4000);
 }
