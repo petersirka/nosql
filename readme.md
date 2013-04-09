@@ -28,7 +28,7 @@ $ npm install nosql
 
 ```js
 
-var nosql = require('nosql').load('/users/petersirka/desktop/database.nosql');
+var nosql = require('nosql').load('/users/petersirka/desktop/database');
 
 // INSERT DOCUMENT
 // nosql.insert(doc, fnCallback);
