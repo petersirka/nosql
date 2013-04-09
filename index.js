@@ -739,7 +739,7 @@ Database.prototype.pause = function() {
 
 	if (self.status === STATUS_UNKNOWN) {
 		self.status = STATUS_PENDING;
-		self.emit('pause');
+		self.emit('pause/resume', true);
 	}
 
 	return self;
@@ -748,7 +748,7 @@ Database.prototype.pause = function() {
 Database.prototype.resume = function() {
 	var self = this;
 	self.isPending = false;
-	self.emit('resume');
+	self.emit('pause/resume', false);
 	self.next();
 	return self;
 };

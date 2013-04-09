@@ -23,13 +23,6 @@ db.on('drop', function(a) {
 	console.log('DROP', a);
 });
 
-db.on('pause', function() {
-	console.log('PAUSE');
-	setTimeout(function() {
-		db.resume();
-	}, 4000);
-});
-
 db.on('update/remove', function(beg, countUpdate, countDelete) {
 	console.log('update/remove ---> ', beg, countUpdate, countDelete);
 });

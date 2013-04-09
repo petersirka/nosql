@@ -29,7 +29,7 @@ $ npm install nosql
 
 var nosql = require('nosql').load('/users/petersirka/desktop/database.nosql');
 
-// INSERT
+// INSERT DOCUMENT
 // nosql.insert(doc, fnCallback);
 // ============================================================================
 
@@ -41,7 +41,7 @@ nosql.insert({ firstName: 'Peter', lastName: 'Širka', age: 28 }, callback);
 nosql.insert({ firstName: 'Fero', lastName: 'Samo', age: 40 }, callback);
 nosql.insert({ firstName: 'Juraj', lastName: 'Hundo', age: 28 }, callback);
 
-// BULK INSERT
+// BULK INSERT DOCUMENTS
 // nosql.insert(array, fnCallback);
 // ============================================================================
 
@@ -51,7 +51,7 @@ var callback = function(count) {
 
 nosql.insert([{ firstName: 'Peter', lastName: 'Širka', age: 28 }, { firstName: 'Fero', lastName: 'Samo', age: 40 }, { firstName: 'Juraj', lastName: 'Hundo', age: 28 }], callback);
 
-// UPDATE
+// UPDATE DOCUMENTS
 // nosql.update(fnUpdate, fnCallback);
 // ============================================================================
 
@@ -70,7 +70,7 @@ nosql.update(function(doc) {
 	return doc;
 }, callback);
 
-// MULTIPLE UPDATE
+// MULTIPLE UPDATE DOCUMENTS
 // nosql.prepare(fnUpdate, fnCallback);
 // nosql.update();
 // ============================================================================
@@ -94,7 +94,7 @@ nosql.prepare(function(doc) {
 
 nosql.update();
 
-// READ DATA
+// READ DOCUMENTS
 // nosql.all(fnFilter, fnCallback, [itemSkip], [itemTake]);
 // nosql.one(fnFilter, fnCallback);
 // nosql.top(max, fnFilter, fnCallback);
@@ -131,7 +131,7 @@ nosql.each(function(doc, offset) {});
 // ============================================================================
 nosql.all('doc.age > 24 && doc.age < 36');
 
-// REMOVE
+// REMOVE DOCUMENTS
 // nosql.remove(fnFilter, fnCallback);
 // ============================================================================
 
@@ -187,19 +187,22 @@ nosql.view.create('young', filter, sort, function(count) {
 
 });
 
-
 // OTHERS
 // ============================================================================
 
+
+// Pause or Resume database operations
 nosql.pause();
 nosql.resume();
+
+// Drop database
+// nosql.drop(fnCallback);
 
 // EVENTS
 // ============================================================================
 
 nosql.on('error', function(err, source) {});
-nosql.on('pause', function() {});
-nosql.on('resume', function() {});
+nosql.on('pause/resume', function(pause) {});
 nosql.on('insert', function(begin, count) {});
 nosql.on('update/remove', function(countUpdate, countRemove) {});
 nosql.on('all', function(begin, count) {});
