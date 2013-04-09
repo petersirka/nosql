@@ -475,7 +475,7 @@ Database.prototype.sort = function(fnFilter, fnSort, itemSkip, itemTake, fnCallb
 	self.each(onItem, onCallback);
 	return self;
 };
-
+.
 /*
 	Drop database
 	@fnCallback {Function} :: params: @dropped {Boolean}
@@ -767,7 +767,7 @@ Database.prototype.view = function(filename, fnFilter, fnSort, fnCallback) {
 
 	var writer = fs.createWriteStream(filename);
 
-	var onCallback = function() {		
+	var onCallback = function() {
 		selected.sort(fnSort);
 
 		
