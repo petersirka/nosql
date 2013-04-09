@@ -12,6 +12,7 @@ node.js NoSQL embedded database
 * Asynchronous insert, read, update, remove, drop
 * Supports Views
 * __No dependencies__
+* [Documentation](http://www.partialjs.com/documentation/nosql/)
 
 ## Installation
 
