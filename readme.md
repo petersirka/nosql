@@ -10,6 +10,7 @@ node.js NoSQL embedded database
 * Quick, simple, effective
 * Easy filtering of documents
 * Asynchronous insert, read, update, remove, drop
+* Supports Views
 * __No dependencies__
 
 ## Installation
@@ -48,11 +49,15 @@ var callback = function(count) {
 	console.log('INSERTED: ' + count);
 };
 
-nosql.bulk([{ firstName: 'Peter', lastName: 'Širka', age: 28 }, { firstName: 'Fero', lastName: 'Samo', age: 40 }, { firstName: 'Juraj', lastName: 'Hundo', age: 28 }], callback);
+nosql.insert([{ firstName: 'Peter', lastName: 'Širka', age: 28 }, { firstName: 'Fero', lastName: 'Samo', age: 40 }, { firstName: 'Juraj', lastName: 'Hundo', age: 28 }], callback);
 
 // UPDATE
 // nosql.update(fnUpdate, fnCallback);
 // ============================================================================
+
+var callback = function(count) {
+	// updated count	
+};
 
 nosql.update(function(doc) {
 	
@@ -63,7 +68,7 @@ nosql.update(function(doc) {
 	// if return {Object}, document will be replaced
 
 	return doc;
-});
+}, callback);
 
 // MULTIPLE UPDATE
 // nosql.prepare(fnUpdate, fnCallback);
@@ -90,10 +95,13 @@ nosql.prepare(function(doc) {
 nosql.update();
 
 // READ DATA
-// nosql.all(fnFilter, fnCallback, itemSkip, itemTake);
+// nosql.all(fnFilter, fnCallback, [itemSkip], [itemTake]);
 // nosql.one(fnFilter, fnCallback);
 // nosql.top(max, fnFilter, fnCallback);
 // nosql.each(fnCallback);
+// ----------------------------------------------------------------------------
+// IMPORTANT: SLOWLY, USE VIEWS
+// nosql.sort(fnFilter, fnSort, fnCallback, [itemSkip], [itemTake]);
 // ============================================================================
 
 var callback = function(selected) {
@@ -127,8 +135,8 @@ nosql.all('doc.age > 24 && doc.age < 36');
 // nosql.remove(fnFilter, fnCallback);
 // ============================================================================
 
-var callback = function() {
-	console.log('Removed');
+var callback = function(count) {
+	// removed count
 });
 
 var filter = function(doc) {
@@ -136,6 +144,49 @@ var filter = function(doc) {
 };
 
 nosql.remove(filter, callback);
+
+// VIEWS
+// nosql.view.all(name, fnCallback, [itemSkip], [itemTake], [fnFilter]);
+// nosql.view.one(name, [fnFilter], fnCallback);
+// nosql.view.top(name, top, fnCallback, [fnFilter]);
+// nosql.view.create(name, fnFilter, fnSort, fnCallback, [fnUpdate]);
+// nosql.view.drop(name, fnCallback);
+// ============================================================================
+
+var filter = function(doc) {
+	return doc.age > 20 && doc.age < 30;
+};
+
+var sort = function(a, b) {
+	if (a.age > b.age)
+		return 1;
+	return -1;
+};
+
+nosql.view.all('young', function(documents, count) {
+	// view file not created
+	// documents === empty
+}, 0, 10);
+
+nosql.view.create('young', filter, sort, function(count) {	
+	
+	// view was created (database create new view file young.nosql-view with filtered and sorted documents)
+
+	nosql.view.all('young', function(documents, count) {
+		console.log(documents);
+		console.log('From total ' + count + ' documents');
+	}, 0, 10);
+
+	nosql.view.top('young', 5, function(documents) {
+		console.log(documents);
+	});
+
+	nosql.view.one('young', 'doc.age === 25', function(document) {
+		console.log(document);
+	});
+
+});
+
 
 // OTHERS
 // ============================================================================
@@ -149,12 +200,15 @@ nosql.resume();
 nosql.on('error', function(err, source) {});
 nosql.on('pause', function() {});
 nosql.on('resume', function() {});
-nosql.on('insert', function(count) {});
-nosql.on('update/remove', function() {});
-nosql.on('all', function() {});
-nosql.on('one', function() {});
-nosql.on('top', function() {});
-nosql.on('each', function() {});
+nosql.on('insert', function(begin, count) {});
+nosql.on('update/remove', function(countUpdate, countRemove) {});
+nosql.on('all', function(begin, count) {});
+nosql.on('one', function(begin, count) {});
+nosql.on('top', function(begin, count) {});
+nosql.on('each', function(begin, count) {});
+nosql.on('view', function(begin, name, count) {});
+nosql.on('view.create', function(begin, name, count) {});
+nosql.on('view.drop', function(begin, name) {});
 nosql.on('complete', function(old_status) {});
 ```
 

@@ -1,5 +1,5 @@
 var fs = require('fs');
-var filename = '/users/petersirka/desktop/test.nosql';
+var filename = '/users/petersirka/desktop/aaa';
 var nosql = require('../index');
 var db = nosql.load(filename);
 var assert = require('assert');
@@ -51,8 +51,9 @@ db.on('complete', function(status) {
 });
 
 if (write) {
-	if (fs.existsSync(filename))
-		fs.unlinkSync(filename);
+
+	if (fs.existsSync(filename + '.nosql'))
+		fs.unlinkSync(filename + '.nosql');
 
 	for (var i = 0; i < 100000; i++)
 		db.insert({ index: i });
@@ -93,6 +94,7 @@ if (read) {
 	}, 500);
 }
 
+
 db.one('doc.index === 89080', function(doc) {
 	console.log(doc);
 });
@@ -104,13 +106,17 @@ setTimeout(function() {
 }, 500);
 
 setTimeout(function() {
+	
 	db.update(function(o) {
+		
 		if (o.index > 10 && o.index < 20)
 			o.index = 10000;
+		
 		return o;
 	}, function() {
 		console.log('UPDATED');
 	});
+
 }, 6000);
 
 /*
@@ -118,13 +124,15 @@ setTimeout(function() {
 	db.drop(function() {
 		console.log('DROPPED');
 	});
-}, 7000);*/
+}, 7000);
+*/
 
 setTimeout(function() {
-	db.scalar(null, function(count) {
-		console.log('scalar');
+	db.count(null, function(count) {
+		console.log('count');
 	});
 }, 2000);
+
 
 if (remove) {
 	setTimeout(function() {

@@ -1,24 +1,26 @@
 var fs = require('fs');
-var filename = '/users/petersirka/desktop/test.nosql';
-var filenameview = '/users/petersirka/desktop/test-view.nosql';
+var filename = '/users/petersirka/desktop/test';
+
 var nosql = require('../index');
 var db = nosql.load(filename);
 var assert = require('assert');
 
-if (fs.existsSync(filename))
-	fs.unlinkSync(filename);
-
 for (var i = 0; i < 100000; i++)
 	db.insert({ index: i });
 
+/*
 setTimeout(function() {
-
-	db.view(filenameview, 'doc.index > 10 && doc.index < 20', function(a,b) {
+	db.view.create('test', 'doc.index > 10 && doc.index < 50000', function(a,b) {
 		if (a.index > b.index)
 			return 1;
 		return -1;
-	}, function(filename, count) {
-		console.log(filename, count);
+	}, function(count) {
+		console.log(count);
 	});
 
 }, 1000);
+
+db.view.one('test', 'doc.index > 230', function(selected, count) {
+	console.log(selected, count);
+});
+*/
