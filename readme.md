@@ -8,8 +8,8 @@ node.js NoSQL embedded database
 * Data are saved to one file as text file
 * Easy editing in e.g. notepad
 * Quick, simple, effective
-* Easy filtering documents
-* Asynchronous insert, read, update, remove
+* Easy filtering of documents
+* Asynchronous insert, read, update, remove, drop
 * __No dependencies__
 
 ## Installation

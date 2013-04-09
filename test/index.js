@@ -19,11 +19,23 @@ db.on('error', function(err, name) {
 	console.log('error ---> ', err, name);
 });
 
+db.on('drop', function(a) {
+	console.log('DROP', a);
+});
+
 db.on('pause', function() {
 	console.log('PAUSE');
 	setTimeout(function() {
 		db.resume();
 	}, 4000);
+});
+
+db.on('update/remove', function(beg, countUpdate, countDelete) {
+	console.log('update/remove ---> ', beg, countUpdate, countDelete);
+});
+
+db.on('update', function(doc) {
+	console.log('THIS UPDATED', doc);
 });
 
 db.on('resume', function() {
@@ -73,7 +85,6 @@ if (read) {
 			console.log(selected);
 		}, 1, 3);
 
-
 		db.each(function(o) {
 			if (o.index === 4300)
 				console.log(o);
@@ -101,6 +112,13 @@ setTimeout(function() {
 		console.log('UPDATED');
 	});
 }, 6000);
+
+/*
+setTimeout(function() {
+	db.drop(function() {
+		console.log('DROPPED');
+	});
+}, 7000);*/
 
 setTimeout(function() {
 	db.scalar(null, function(count) {
