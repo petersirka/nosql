@@ -926,11 +926,11 @@ Views.prototype.drop = function(name, fnCallback) {
 		self.views[name] = view;
 	}
 
-	self.emit('view.drop', true, name);
+	self.emit('view/drop', true, name);
 	view.operation(function(cb) {
 		fs.exists(view.filename, function(exists) {
 
-			self.emit('view.drop', false, name);
+			self.emit('view/drop', false, name);
 
 			if (!exists) {
 				fnCallback(true);
@@ -941,7 +941,7 @@ Views.prototype.drop = function(name, fnCallback) {
 			fs.unlink(view.filename, function(err) {
 				
 				if (err)
-					self.emit('error', err, 'view.drop');
+					self.emit('error', err, 'view/drop');
 
 				fnCallback(true);
 				cb && cb();
@@ -970,7 +970,7 @@ Views.prototype.create = function(name, fnFilter, fnSort, fnCallback, fnUpdate) 
 	if (typeof(fnFilter) === 'string')
 		fnFilter = filterPrepare(fnFilter);
 
-	self.emit('view.create', true, name, 0);
+	self.emit('view/create', true, name, 0);
 
 	var onCallback = function() {
 		selected.sort(fnSort);
@@ -984,7 +984,7 @@ Views.prototype.create = function(name, fnFilter, fnSort, fnCallback, fnUpdate) 
 		var filename = path.join(self.directory, name + EXTENSION_VIEW);
 		view.operation(function(cb) {
 			appendFile(filename, selected, function() {
-				self.emit('view.create', false, name, count);
+				self.emit('view/create', false, name, count);
 				setImmediate(function() { fnCallback(count); });
 				cb && cb();
 			});

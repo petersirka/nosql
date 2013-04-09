@@ -211,8 +211,8 @@ nosql.on('one', function(begin, count) {});
 nosql.on('top', function(begin, count) {});
 nosql.on('each', function(begin, count) {});
 nosql.on('view', function(begin, name, count) {});
-nosql.on('view.create', function(begin, name, count) {});
-nosql.on('view.drop', function(begin, name) {});
+nosql.on('view/create', function(begin, name, count) {});
+nosql.on('view/drop', function(begin, name) {});
 nosql.on('complete', function(old_status) {});
 ```
 
