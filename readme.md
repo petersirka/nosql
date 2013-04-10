@@ -5,15 +5,15 @@ node.js NoSQL embedded database
 
 * Written in JavaScript
 * Small and effective embedded database
+* Implements small concurrency model
 * Data are saved to one file as text file
 * Easy editing in e.g. notepad
 * Quick, simple, effective
 * Easy filtering of documents
-* Asynchronous insert, read, update, remove, drop
+* Asynchronous insert, read, update, remove, drop, count
 * Supports Views
 * __No dependencies__
 * [Documentation](http://www.partialjs.com/documentation/nosql/)
-
 
 ## Installation
 
@@ -215,6 +215,7 @@ nosql.on('view', function(begin, name, count) {});
 nosql.on('view/create', function(begin, name, count) {});
 nosql.on('view/drop', function(begin, name) {});
 nosql.on('complete', function(old_status) {});
+
 ```
 
 ## Tips
@@ -276,23 +277,22 @@ var userTake = 30;
 nosql.view.all('users', function(users, count) {	
 	
 	console.log(users);
-	console.log('From total:', count);
 
-	// in the first page you know to calculate, how many pages of documents are in database
-	var pages = count / userTake;
+	var pageCount = count / userTake;
 
-	if (pages % userTake !== 0)
-		pages++;
+	if (pageCount % userTake !== 0)
+		pageCount++;
 
-	console.log('Total pages: ', pages);
+	console.log('Total pages:', pageCount);
+	console.log('Total users:', count);
 
 }, userSkip, userTake);
 
 // or filtering in view
 
-nosql.view.all('users function(users, count) {	
+nosql.view.all('users', function(users, count) {	
 	console.log(users);
-	console.log('From total:', count);
+	console.log('Total users:', count);
 }, userSkip, userTake, 'user.age > 10 && user.age < 30');
 
 // Without view:
@@ -302,6 +302,7 @@ nosql.all('user.age > 10 && user.age < 30', function(users) {
 }, userSkip, userTake);
 
 // Without view (sorted):
+// SLOWLY AND RAM KILLER
 
 nosql.sort('user.age > 10 && user.age < 30', function(a, b) {
 	if (a.age < b.age)
@@ -309,13 +310,8 @@ nosql.sort('user.age > 10 && user.age < 30', function(a, b) {
 	return 1;
 } function(users, count) {	
 	console.log(users);
-	console.log('From total:', count);
+	console.log('Total users:', count);
 }, userSkip, userTake);
-
-
-// View benefits:
-// - in callback are params: sorted array and total count of documents in view
-// - view is readonly
 
 ```
 
