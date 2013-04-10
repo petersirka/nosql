@@ -14,6 +14,7 @@ node.js NoSQL embedded database
 * Supports Views
 * __No dependencies__
 * [Documentation](http://www.partialjs.com/documentation/nosql/)
+* Implemented in [partial.js / web application framework](http://www.partialjs.com)
 
 ## Installation
 
@@ -242,7 +243,7 @@ function addUser() {
 // How to summarize prices?
 // ============================================================================
 
-function addUser() {
+function sumarize() {
 	// ...
 	// ...
 
