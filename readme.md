@@ -173,7 +173,7 @@ nosql.view.all('young', function(documents, count) {
 
 nosql.view.create('young', filter, sort, function(count) {	
 	
-	// view was created (database create new view file young.nosql-view with filtered and sorted documents)
+	// view was created (database create new view file database#young.nosql with filtered and sorted documents)
 
 	nosql.view.all('young', function(documents, count) {
 		console.log(documents);
