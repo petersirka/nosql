@@ -307,7 +307,7 @@ Database.prototype.one = function(fnFilter, fnCallback) {
 /*
 	Read TOP "x" documents from database
 	@fnFilter {Function} :: IMPORTANT: you must return {Boolean}
-	@fnCallback {Function} :: params: @doc {Object}
+	@fnCallback {Function} :: params: @doc {Array of Object}
 	return {Database}
 */
 Database.prototype.top = function(max, fnFilter, fnCallback) {
@@ -442,8 +442,8 @@ Database.prototype.each = function(fnDocument, fnCallback) {
 	Read and sort documents from database (SLOWLY)
 	@fnFilter {Function} :: IMPORTANT: you must return {Boolean}
 	@fnSort {Function} :: ---> array.sort()
-	@itemSkip {Number}
-	@itemTake {Number}
+	@itemSkip {Number}, default 0 (if itemSkip = 0 and itemTake = 0 then return all documents)
+	@itemTake {Number}, default 0 (if itemSkip = 0 and itemTake = 0 then return all documents)
 	@fnCallback {Function} :: params: @doc {Object}, @count {Number}
 	return {Database}
 */
@@ -830,13 +830,13 @@ Database.prototype.next = function() {
 };
 
 // ========================================================================
-// VIEWS
+// VIEWS PROTOTYPE
 // ========================================================================
 
 /*
 	Read documents from view
 	@name {String}
-	@fnCallback {Function} :: params: @doc {Object}, @count {Number}
+	@fnCallback {Function} :: params: @doc {Array of Object}, @count {Number}
 	@itemSkip {Number} :: optional, default 0
 	@itemTake {Number} :: optional, default 0
 	@fnFilter {Function} :: optional, IMPORTANT: you must return {Boolean}
@@ -865,7 +865,7 @@ Views.prototype.all = function(name, fnCallback, itemSkip, itemTake, fnFilter) {
 	Read documents from view
 	@name {String}
 	@top {Number}
-	@fnCallback {Function} :: params: @doc {Object}
+	@fnCallback {Function} :: params: @doc {Array of Object}
 	@fnFilter {Function} :: optional, IMPORTANT: you must return {Boolean}
 	return {Database}
 */
@@ -1022,18 +1022,28 @@ Views.prototype.create = function(name, fnFilter, fnSort, fnCallback, fnUpdate) 
 	return self.db;
 };
 
+/*
+	Create view object
+	@name {String}
+	return {View}
+*/
 Views.prototype.getView = function(name) {
 	var self = this;
 	return new View(self.db, name, self.getFileName(name));
 };
 
+/*
+	Create view filename
+	@name {String}
+	return {String}
+*/
 Views.prototype.getFileName = function(name) {
 	var self = this;
 	return path.join(self.directory, self.db.name + '#' + name + EXTENSION_VIEW);
 };
 
 // ========================================================================
-// VIEW
+// VIEW PROTOTYPE
 // ========================================================================
 
 /*
