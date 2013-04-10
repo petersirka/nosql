@@ -259,7 +259,7 @@ function sumarize() {
 }
 
 // ============================================================================
-// How to count documents?
+// How to get documents count?
 // ============================================================================
 
 nosql.count('user.age > 10 && user.age < 30', function(count) {
@@ -267,7 +267,7 @@ nosql.count('user.age > 10 && user.age < 30', function(count) {
 });
 
 // ============================================================================
-// How to pagination documents?
+// How to paging documents?
 // ============================================================================
 
 // TIP: create a view
