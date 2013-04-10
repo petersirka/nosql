@@ -378,7 +378,7 @@ Database.prototype.each = function(fnDocument, fnCallback) {
 		current = '';
 
 		if (err) {
-			self.emit('error', err);
+			self.emit('error', err, 'each-buffer');
 			return;
 		}
 
@@ -386,7 +386,7 @@ Database.prototype.each = function(fnDocument, fnCallback) {
 			try
 			{
 			
-				fn.item(doc, count);
+				fn.item(doc, count, 'each-buffer');
 			
 			} catch (e) {
 				self.emit('error', e);
