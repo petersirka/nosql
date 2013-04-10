@@ -734,6 +734,9 @@ Database.prototype.remove = function(fnFilter, fnCallback) {
 Database.prototype.pause = function() {	
 	var self = this;
 
+	if (self.isPending === true)
+		return self;
+
 	self.isPending = true;
 
 	if (self.status === STATUS_UNKNOWN) {
@@ -746,6 +749,10 @@ Database.prototype.pause = function() {
 
 Database.prototype.resume = function() {
 	var self = this;
+
+	if (!self.isPending)
+		return self;
+
 	self.isPending = false;
 	self.emit('pause/resume', false);
 	self.next();

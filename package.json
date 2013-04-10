@@ -3,7 +3,7 @@
     "version": "1.0.0-8",
     "description": "NoSQL embedded database for small node.js projects (supports insert, update, remove, views, drop)",
     "main": "./index.js",
-    "keywords": [ "nosql", "database", "embed", "embedded"],
+    "keywords": [ "nosql", "database", "embed", "embedded", "db"],
     "engines": {
         "node": ">=0.8.0"
     },
