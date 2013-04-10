@@ -14,6 +14,7 @@ node.js NoSQL embedded database
 * __No dependencies__
 * [Documentation](http://www.partialjs.com/documentation/nosql/)
 
+
 ## Installation
 
 ```
@@ -101,7 +102,7 @@ nosql.update();
 // nosql.top(max, fnFilter, fnCallback);
 // nosql.each(fnCallback);
 // ----------------------------------------------------------------------------
-// IMPORTANT: SLOWLY, USE VIEWS
+// IMPORTANT: SLOWLY AND RAM KILLER, USE VIEWS
 // nosql.sort(fnFilter, fnSort, fnCallback, [itemSkip], [itemTake]);
 // ============================================================================
 
@@ -214,6 +215,108 @@ nosql.on('view', function(begin, name, count) {});
 nosql.on('view/create', function(begin, name, count) {});
 nosql.on('view/drop', function(begin, name) {});
 nosql.on('complete', function(old_status) {});
+```
+
+## Tips
+
+```js
+
+// ============================================================================
+// How to create live view?
+// ============================================================================
+
+function addUser() {
+	// ...
+	// ...
+	nosql.insert(user, function() {
+
+		// refresh view
+		nosql.view.create('user', yourGlobalUser.filter, yourGlobalUser.sort);
+
+	});
+}
+
+
+// ============================================================================
+// How to summarize prices?
+// ============================================================================
+
+function addUser() {
+	// ...
+	// ...
+
+	var sum = 0;
+	nosql.each(function(doc) {
+
+		if (doc.type === 'product')
+			sum += doc.price;
+
+	}, function() {
+		console.log('Price of all products:', sum);
+	});
+}
+
+// ============================================================================
+// How to count documents?
+// ============================================================================
+
+nosql.count('user.age > 10 && user.age < 30', function(count) {
+	console.log('Count of users between 10 and 30 years old:', count);
+});
+
+// ============================================================================
+// How to pagination documents?
+// ============================================================================
+
+// TIP: create a view
+
+var userSkip = 10;
+var userTake = 30;
+
+nosql.view.all('users', function(users, count) {	
+	
+	console.log(users);
+	console.log('From total:', count);
+
+	// in the first page you know to calculate, how many pages of documents are in database
+	var pages = count / userTake;
+
+	if (pages % userTake !== 0)
+		pages++;
+
+	console.log('Total pages: ', pages);
+
+}, userSkip, userTake);
+
+// or filtering in view
+
+nosql.view.all('users function(users, count) {	
+	console.log(users);
+	console.log('From total:', count);
+}, userSkip, userTake, 'user.age > 10 && user.age < 30');
+
+// Without view:
+
+nosql.all('user.age > 10 && user.age < 30', function(users) {	
+	console.log(users);
+}, userSkip, userTake);
+
+// Without view (sorted):
+
+nosql.sort('user.age > 10 && user.age < 30', function(a, b) {
+	if (a.age < b.age)
+		return -1;
+	return 1;
+} function(users, count) {	
+	console.log(users);
+	console.log('From total:', count);
+}, userSkip, userTake);
+
+
+// View benefits:
+// - in callback are params: sorted array and total count of documents in view
+// - view is readonly
+
 ```
 
 ## The MIT License

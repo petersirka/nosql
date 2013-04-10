@@ -33,7 +33,7 @@ var STATUS_PENDING = 4;
 var NEWLINE = '\n';
 
 var EXTENSION = '.nosql';
-var EXTENSION_VIEW = '.nosql-view';
+var EXTENSION_VIEW = '.nosql';
 var EXTENSION_TMP = '.nosql-tmp';
 
 var MAX_WRITESTREAM = 2;
@@ -64,9 +64,13 @@ function Database(filename) {
 
 	this.isPending = false;
 
+	if (filename.indexOf(EXTENSION) !== -1)
+		filename = filename.replace(EXTENSION, '');
+
 	this.filename = filename + EXTENSION;
 	this.filenameTemp = filename + EXTENSION_TMP;
-	
+	this.name = path.basename(filename);
+
 	this.directory = path.dirname(filename);
 	this.view = new Views(this);
 };
@@ -836,7 +840,7 @@ Views.prototype.all = function(name, fnCallback, itemSkip, itemTake, fnFilter) {
 	var view = self.views[name];
 
 	if (typeof(view) === 'undefined') {
-		view = new View(self.db, name, path.join(self.directory, name + EXTENSION_VIEW));
+		view = self.getView(name);
 		self.views[name] = view;
 	}
 
@@ -864,7 +868,7 @@ Views.prototype.top = function(name, top, fnCallback, fnFilter) {
 	var view = self.views[name];
 
 	if (typeof(view) === 'undefined') {
-		view = new View(self.db, name, path.join(self.directory, name + EXTENSION_VIEW));
+		view = self.getView(name);
 		self.views[name] = view;
 	}
 
@@ -891,7 +895,7 @@ Views.prototype.one = function(name, fnFilter, fnCallback) {
 	var view = self.views[name];
 
 	if (typeof(view) === 'undefined') {
-		view = new View(self.db, name, path.join(self.directory, name + EXTENSION_VIEW));
+		view = self.getView(name);
 		self.views[name] = view;
 	}
 
@@ -922,11 +926,12 @@ Views.prototype.drop = function(name, fnCallback) {
 	var view = self.views[name];
 
 	if (typeof(view) === 'undefined') {
-		view = new View(self.db, name, path.join(self.directory, name + EXTENSION_VIEW));
+		view = self.getView(name);
 		self.views[name] = view;
 	}
 
 	self.emit('view/drop', true, name);
+
 	view.operation(function(cb) {
 		fs.exists(view.filename, function(exists) {
 
@@ -977,11 +982,12 @@ Views.prototype.create = function(name, fnFilter, fnSort, fnCallback, fnUpdate) 
 		var view = self.views[name];
 		
 		if (typeof(view) === 'undefined') {
-			view = new View(self.db, name, path.join(self.directory, name + EXTENSION_VIEW));
+			view = self.getView(name);
 			self.views[name] = view;
 		}
 
-		var filename = path.join(self.directory, name + EXTENSION_VIEW);
+		var filename = self.getFileName(name);
+
 		view.operation(function(cb) {
 			appendFile(filename, selected, function() {
 				self.emit('view/create', false, name, count);
@@ -1007,6 +1013,16 @@ Views.prototype.create = function(name, fnFilter, fnSort, fnCallback, fnUpdate) 
 
 	self.db.each(onItem, onCallback);
 	return self.db;
+};
+
+Views.prototype.getView = function(name) {
+	var self = this;
+	return new View(self.db, name, self.getFileName(name));
+};
+
+Views.prototype.getFileName = function(name) {
+	var self = this;
+	return path.join(self.directory, self.db.name + '#' + name + EXTENSION_VIEW);
 };
 
 // ========================================================================
@@ -1198,7 +1214,9 @@ View.prototype.next = function() {
 	return {Function}
 */
 function filterPrepare(fnFilter) {
-	 return eval('(function(doc){' + (fnFilter.indexOf('return ') === -1 ? 'return ' : '') + fnFilter + '})')
+	if (fnFilter.length === 0)
+		return function() { return true; };	
+	return eval('(function(doc){' + (fnFilter.indexOf('return ') === -1 ? 'return ' : '') + fnFilter + '})')
 };
 
 /*
