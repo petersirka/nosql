@@ -36,7 +36,7 @@ var nosql = require('nosql').load('/users/petersirka/desktop/database');
 // nosql.insert(doc, fnCallback);
 // ============================================================================
 
-var callback = function(doc, count) {
+var callback = function(count) {
 	// optional
 };
 
