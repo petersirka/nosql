@@ -32,7 +32,7 @@ $ npm install nosql
 
 ```js
 
-var nosql = require('nosql').load('/users/petersirka/desktop/database.nosql');
+var nosql = require('nosql').load('/users/petersirka/desktop/database.nosql', '/users/petersirka/desktop/binary-files-directory/');
 
 // INSERT DOCUMENT
 // nosql.insert(doc, fnCallback);
