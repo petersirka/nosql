@@ -12,6 +12,7 @@ node.js NoSQL embedded database
 * Easy filtering of documents
 * Asynchronous insert, read, update, remove, drop, count
 * Supports Views
+* Supports Binary files (insert, read, remove)
 * __No dependencies__
 * [Documentation](http://www.partialjs.com/documentation/nosql/)
 * [News on Twitter - @partialjs](https://twitter.com/partialjs)
@@ -31,7 +32,7 @@ $ npm install nosql
 
 ```js
 
-var nosql = require('nosql').load('/users/petersirka/desktop/database');
+var nosql = require('nosql').load('/users/petersirka/desktop/database.nosql');
 
 // INSERT DOCUMENT
 // nosql.insert(doc, fnCallback);
@@ -191,9 +192,47 @@ nosql.view.create('young', filter, sort, function(count) {
 
 });
 
-// OTHERS
+// BINARY FILES
+// nosql.binary.insert(name, contentType, buffer/base64, [callback]); - return file ID
+// nosql.binary.read(id, callback);
+// nosql.binary.remove(id, [callback]);
 // ============================================================================
 
+fs.readFile('/users/petersirka/desktop/picture.jpg', function(err, data) {
+
+	// sync function
+	var id = nosql.binary.insert('picture.jpg', 'image/jpeg', data);
+
+	console.log(id);
+
+	// results: 1365699379204dab2csor
+	// nosql.binary.read(id, .......);
+
+});
+
+nosql.binary.read('1365699379204dab2csor', function(err, stream, header) {
+	
+	if (err)
+		return;
+
+	// header.name; - file name
+	// header.size; - file size
+	// header.type; - content type
+
+	stream.pipe(fs.createWriteStream('/users/petersirka/dekstop/picture-database.jpg'));
+	
+	// or
+	
+	stream.pipe(httpResponse);
+});
+
+nosql.binary.remove('1365699379204dab2csor', function(isRemoved) {
+	console.log(isRemoved === true);
+});
+
+
+// OTHERS
+// ============================================================================
 
 // Pause or Resume database operations
 nosql.pause();
