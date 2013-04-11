@@ -3,6 +3,7 @@
 node.js NoSQL embedded database
 ===============================
 
+* __NEW:__ Supports Binary files (insert, read, remove)
 * Written in JavaScript
 * Small and effective embedded database
 * Implements small concurrency model
@@ -12,7 +13,6 @@ node.js NoSQL embedded database
 * Easy filtering of documents
 * Asynchronous insert, read, update, remove, drop, count
 * Supports Views
-* Supports Binary files (insert, read, remove)
 * __No dependencies__
 * [Documentation](http://www.partialjs.com/documentation/nosql/)
 * [News on Twitter - @partialjs](https://twitter.com/partialjs)
