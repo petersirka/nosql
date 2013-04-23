@@ -3,7 +3,7 @@
 node.js NoSQL embedded database
 ===============================
 
-* __NEW:__ Supports changelog (insert, update, remove, drop (view, binary), create (view, binary))
+* __NEW:__ Supports changelog (insert, update, remove, drop, create)
 * __NEW:__ Supports Binary files (insert, read, remove)
 * Written in JavaScript
 * Small and effective embedded database
@@ -30,11 +30,32 @@ $ sudo npm install -g nosql
 $ npm install nosql
 ```
 
+## NEW: CHANGELOG
+
+```js
+
+var nosql = require('nosql').load('/users/petersirka/desktop/database.nosql';
+
+nosql.insert({ name: 'Peter' }, 'insert new user');
+nosql.update(..., 'update all users where age > 20');
+
+nosql.binary.insert(...., 'new user photo');
+
+/*
+	Changelog: /users/petersirka/desktop/database.changes
+*/
+
+2013-04-23 18:08:37 - insert new user
+2013-04-23 19:12:21 - update all users where age > 20
+2013-04-23 20:01:02 - new user photo
+
+```
+
 ## node.js
 
 ```js
 
-var nosql = require('nosql').load('/users/petersirka/desktop/database.db', '/users/petersirka/desktop/binary-files-directory/');
+var nosql = require('nosql').load('/users/petersirka/desktop/database.nosql', '/users/petersirka/desktop/binary-files-directory/');
 // nosq.load(filename, [path-to-binary-directory]);
 
 // INSERT DOCUMENT
@@ -45,7 +66,7 @@ var callback = function(count) {
 	// optional
 };
 
-nosql.insert({ firstName: 'Peter', lastName: 'Širka', age: 28 }, callback);
+nosql.insert({ firstName: 'Peter', lastName: 'Širka', age: 28 }, callback, 'new registered user: Peter Širka');
 nosql.insert({ firstName: 'Fero', lastName: 'Samo', age: 40 }, callback);
 nosql.insert({ firstName: 'Juraj', lastName: 'Hundo', age: 28 }, callback);
 
