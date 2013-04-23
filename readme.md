@@ -3,7 +3,7 @@
 node.js NoSQL embedded database
 ===============================
 
-* __NEW:__ Supports changelog
+* __NEW:__ Supports changelog (insert, update, remove, drop (view, binary), create (view, binary))
 * __NEW:__ Supports Binary files (insert, read, remove)
 * Written in JavaScript
 * Small and effective embedded database
