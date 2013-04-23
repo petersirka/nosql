@@ -33,22 +33,20 @@ $ npm install nosql
 ## NEW: CHANGELOG
 
 ```js
-
 var nosql = require('nosql').load('/users/petersirka/desktop/database.nosql';
 
 nosql.insert({ name: 'Peter' }, 'insert new user');
 nosql.update(..., 'update all users where age > 20');
 
 nosql.binary.insert(...., 'new user photo');
+```
 
-/*
-	Changelog: /users/petersirka/desktop/database.changes
-*/
+###	Changelog: /users/petersirka/desktop/database.changes
 
+```plain
 2013-04-23 18:08:37 - insert new user
 2013-04-23 19:12:21 - update all users where age > 20
 2013-04-23 20:01:02 - new user photo
-
 ```
 
 ## node.js
