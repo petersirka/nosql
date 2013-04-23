@@ -3,6 +3,7 @@
 node.js NoSQL embedded database
 ===============================
 
+* __NEW:__ Supports changelog
 * __NEW:__ Supports Binary files (insert, read, remove)
 * Written in JavaScript
 * Small and effective embedded database
@@ -33,11 +34,11 @@ $ npm install nosql
 
 ```js
 
-var nosql = require('nosql').load('/users/petersirka/desktop/database.nosql', '/users/petersirka/desktop/binary-files-directory/');
+var nosql = require('nosql').load('/users/petersirka/desktop/database.db', '/users/petersirka/desktop/binary-files-directory/');
 // nosq.load(filename, [path-to-binary-directory]);
 
 // INSERT DOCUMENT
-// nosql.insert(doc, fnCallback);
+// nosql.insert(doc, [fnCallback], [changes]);
 // ============================================================================
 
 var callback = function(count) {
@@ -59,7 +60,7 @@ var callback = function(count) {
 nosql.insert([{ firstName: 'Peter', lastName: 'Širka', age: 28 }, { firstName: 'Fero', lastName: 'Samo', age: 40 }, { firstName: 'Juraj', lastName: 'Hundo', age: 28 }], callback);
 
 // UPDATE DOCUMENTS
-// nosql.update(fnUpdate, fnCallback);
+// nosql.update(fnUpdate, [fnCallback], [changes]);
 // ============================================================================
 
 var callback = function(count) {
@@ -78,7 +79,7 @@ nosql.update(function(doc) {
 }, callback);
 
 // MULTIPLE UPDATE DOCUMENTS
-// nosql.prepare(fnUpdate, fnCallback);
+// nosql.prepare(fnUpdate, [fnCallback], [changes]);
 // nosql.update();
 // ============================================================================
 
@@ -139,7 +140,7 @@ nosql.each(function(doc, offset) {});
 nosql.all('doc.age > 24 && doc.age < 36');
 
 // REMOVE DOCUMENTS
-// nosql.remove(fnFilter, fnCallback);
+// nosql.remove(fnFilter, [fnCallback], [changes]);
 // ============================================================================
 
 var callback = function(count) {
@@ -156,8 +157,8 @@ nosql.remove(filter, callback);
 // nosql.view.all(name, fnCallback, [itemSkip], [itemTake], [fnFilter]);
 // nosql.view.one(name, [fnFilter], fnCallback);
 // nosql.view.top(name, top, fnCallback, [fnFilter]);
-// nosql.view.create(name, fnFilter, fnSort, fnCallback, [fnUpdate]);
-// nosql.view.drop(name, fnCallback);
+// nosql.view.create(name, fnFilter, fnSort, [fnCallback], [fnUpdate], [changes]);
+// nosql.view.drop(name, [fnCallback], [changes]);
 // ============================================================================
 
 var filter = function(doc) {
@@ -177,7 +178,7 @@ nosql.view.all('young', function(documents, count) {
 
 nosql.view.create('young', filter, sort, function(count) {	
 	
-	// view was created (database create new view file database#young.nosql with filtered and sorted documents)
+	// view was created (database create new view file database#young.db with filtered and sorted documents)
 
 	nosql.view.all('young', function(documents, count) {
 		console.log(documents);
@@ -195,9 +196,9 @@ nosql.view.create('young', filter, sort, function(count) {
 });
 
 // BINARY FILES
-// nosql.binary.insert(name, contentType, buffer/base64, [callback]); - return file ID
-// nosql.binary.read(id, callback);
-// nosql.binary.remove(id, [callback]);
+// nosql.binary.insert(name, contentType, buffer/base64, [callback], [chnages]); - return file ID
+// nosql.binary.read(id, fnCallback);
+// nosql.binary.remove(id, [fnCallback], [changes]);
 // ============================================================================
 
 fs.readFile('/users/petersirka/desktop/picture.jpg', function(err, data) {

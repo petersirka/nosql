@@ -50,6 +50,8 @@ if (write) {
 
 	for (var i = 0; i < 100000; i++)
 		db.insert({ index: i });
+
+	db.insert({ index: 100001 }, 'super');
 }
 
 if (read) {
@@ -107,7 +109,7 @@ setTimeout(function() {
 		return o;
 	}, function() {
 		console.log('UPDATED');
-	});
+	}, 'Index > 10 && Index < 20');
 
 }, 5000);
 
@@ -130,6 +132,6 @@ if (remove) {
 	setTimeout(function() {
 		db.remove('doc.index > 105', function() {
 			console.log('remove');
-		});
+		}, 'remove doc.index > 105');
 	}, 4000);
 }

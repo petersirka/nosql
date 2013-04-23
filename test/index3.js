@@ -8,6 +8,6 @@ var assert = require('assert');
 
 fs.readFile('/users/petersirka/desktop/logo.png', function(err, data) {
 	
-	console.log(db.binary.insert('logo.png', 'image/png', data));
+	console.log(db.binary.insert('logo.png', 'image/png', data, 'insert'));
 
 });
