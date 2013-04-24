@@ -145,4 +145,9 @@ setTimeout(function() {
 		console.log(lines);
 	});
 
+	db.clear(function() {
+		console.log('clear');
+		db.insert({r: true});
+	});
+
 }, 7000);
