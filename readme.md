@@ -12,7 +12,7 @@ node.js NoSQL embedded database
 * Easy editing in e.g. notepad
 * Quick, simple, effective
 * Easy filtering of documents
-* Asynchronous insert, read, update, remove, drop, count
+* Asynchronous insert, read, update, remove, drop, count, clear
 * Supports Views
 * __No dependencies__
 * [Documentation](http://www.partialjs.com/documentation/nosql/)
@@ -44,9 +44,9 @@ nosql.binary.insert(...., 'new user photo');
 ###	Changelog: /users/petersirka/desktop/database.changes
 
 ```plain
-2013-04-23 18:08:37 - insert new user
-2013-04-23 19:12:21 - update all users where age > 20
-2013-04-23 20:01:02 - new user photo
+2013-04-23 18:08:37 | insert new user
+2013-04-23 19:12:21 | update all users where age > 20
+2013-04-23 20:01:02 | new user photo
 ```
 
 ## node.js
@@ -261,7 +261,10 @@ nosql.pause();
 nosql.resume();
 
 // Drop database
-// nosql.drop(fnCallback);
+// nosql.drop([fnCallback]);
+
+// Clear database
+// nosql.clear([fnCallback]);
 
 // EVENTS
 // ============================================================================
@@ -277,7 +280,29 @@ nosql.on('each', function(begin, count) {});
 nosql.on('view', function(begin, name, count) {});
 nosql.on('view/create', function(begin, name, count) {});
 nosql.on('view/drop', function(begin, name) {});
+nosql.on('clear', function(begin, success) {});
+nosql.on('drop', function(begin, success) {});
 nosql.on('complete', function(old_status) {});
+
+```
+
+## Changelog
+
+> version +1.0.2-0
+
+```js
+
+// INSERT
+nosql.changelog.insert('my change');
+nosql.changelog.insert(['my change 1', 'my change 2', 'my change 3']);
+
+// CLEAR CHANGELOG
+nosql.changelog.clear([fnCallback]);
+
+// READ CHANGELOG
+nosql.changelog.read(function(lines) {
+	console.log(lines.join('\n'));
+});
 
 ```
 

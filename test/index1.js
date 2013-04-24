@@ -135,3 +135,14 @@ if (remove) {
 		}, 'remove doc.index > 105');
 	}, 4000);
 }
+
+setTimeout(function() {
+
+	console.log('');
+	console.log('CHANGELOG:');
+	console.log('');
+	db.changelog.read(function(lines) {
+		console.log(lines);
+	});
+
+}, 7000);
