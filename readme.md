@@ -227,7 +227,7 @@ fs.readFile('/users/petersirka/desktop/picture.jpg', function(err, data) {
 
 	console.log(id);
 
-	// results: 1365699379204dab2csor
+	// result: 1365699379204dab2csor
 	// nosql.binary.read(id, .......);
 
 });
@@ -248,7 +248,7 @@ nosql.binary.read('1365699379204dab2csor', function(err, stream, header) {
 	stream.pipe(httpResponse);
 });
 
-nosql.binary.remove('1365699379204dab2csor', function(isRemoved) {
+nosql.binary.remove('database#1365699379204dab2csor', function(isRemoved) {
 	console.log(isRemoved === true);
 });
 
@@ -263,7 +263,7 @@ nosql.resume();
 // Drop database
 // nosql.drop([fnCallback]);
 
-// Clear database
+// Clear / Truncate database
 // nosql.clear([fnCallback]);
 
 // EVENTS
