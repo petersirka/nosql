@@ -283,6 +283,7 @@ nosql.on('view/drop', function(begin, name) {});
 nosql.on('clear', function(begin, success) {});
 nosql.on('drop', function(begin, success) {});
 nosql.on('complete', function(old_status) {});
+nosql.on('change', function(description) {});
 
 ```
 

@@ -1609,6 +1609,7 @@ Changelog.prototype.insert = function(description) {
 
 	description.forEach(function(line) {
 		lines += dt + ' | ' + line + NEWLINE;
+		self.db.emit('change', line);
 	});
 	
 	fs.appendFile(self.filename, lines, function(err) {});	

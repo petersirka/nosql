@@ -43,6 +43,10 @@ db.on('complete', function(status) {
 	console.log('complete --> ', status);
 });
 
+db.on('change', function(description) {
+	console.log('change --> ', description);
+});
+
 if (write) {
 
 	if (fs.existsSync(filename + '.nosql'))
