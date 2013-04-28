@@ -717,6 +717,11 @@ Database.prototype._drop = function() {
 Database.prototype.update = function(fnUpdate, fnCallback, changes, type) {
 	var self = this;
 
+	if (typeof(fnCallback) === 'string') {
+		changes = fnCallback;
+		fnCallback = null;
+	}
+
 	if (typeof(fnUpdate) !== 'undefined')
 		self.pendingLock.push(updatePrepare(fnUpdate, fnCallback, changes, type || 'update'));
 		
