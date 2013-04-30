@@ -40,6 +40,7 @@ var EXTENSION_CHANGES = '.changes';
 
 var MAX_WRITESTREAM = 2;
 var MAX_READSTREAM = 4;
+var MAX_BUFFER_SIZE = 1024 * 4;
 var BINARY_HEADER_LENGTH = 2000;
 
 if (typeof(setImmediate) === 'undefined') {
@@ -90,6 +91,7 @@ function Database(filename, directory, changes) {
 	
 	this.binary = (directory || '').length === 0 ? null : new Binary(this, directory);
 	this.changelog = new Changelog(this, this.filenameChanges);
+	this.file = new FileReader(this);
 };
 
 /*
@@ -99,7 +101,7 @@ function Views(db) {
 	this.views = {};
 	this.db = db;
 	this.directory = db.directory;
-	this.emit = db.emit;
+	this.emit = db.emit;	
 };
 
 /*
@@ -116,8 +118,13 @@ function View(db, name, filename) {
 	this.filename = filename;
 	this.name = name;
 	this.emit = db.emit;
+	this.file = new FileReader(db);
 };
 
+/* 
+	@db {Database}
+	@directory {String}
+*/
 function Binary(db, directory) {
 	this.db = db;
 	this.directory = directory;
@@ -131,8 +138,19 @@ function Binary(db, directory) {
 	fs.mkdirSync(directory);
 };
 
+/* 
+	@db {Database}
+	@filename {String}
+*/
 function Changelog(db, filename) {
 	this.filename = filename;
+	this.db = db;
+};
+
+/* 
+	@db {Database}
+*/
+function FileReader(db) {
 	this.db = db;
 };
 
@@ -243,8 +261,6 @@ Database.prototype.read = function(fnFilter, fnCallback, itemSkip, itemTake, isS
 		return self;
 	}
 
-	var reader = fs.createReadStream(self.filename);
-
 	if (typeof(fnCallback) === 'undefined') {
 		fnCallback = fnFilter;
 		fnFilter = function() { return true; };
@@ -265,20 +281,16 @@ Database.prototype.read = function(fnFilter, fnCallback, itemSkip, itemTake, isS
 	var selected = [];
 	var current = '';
 	var count = 0;
-	var isCanceled = false;
-
-	var fnCancel = function() {
-		isCanceled = true;
-	};
+	var resume = true;
 
 	var fnBuffer = function(buffer) {
 		current += buffer;
 		return current;
 	};
 
-	var fnItem = function(err, doc, cancel) {
+	var fnItem = function(err, doc) {
 
-		if (isCanceled)
+		if (!resume)
 			return;
 
 		// clear buffer;
@@ -296,38 +308,21 @@ Database.prototype.read = function(fnFilter, fnCallback, itemSkip, itemTake, isS
 			selected.push(doc);
 
 		if (take > 0 && selected.length === take)
-			cancel();
+			resume = false;
 	};
 
-	reader.on('data', function(buffer) {
+	var reader = self.file.open(self.filename, MAX_BUFFER_SIZE, function(buffer) {
 		
-		if (isCanceled)
-			return;
-		
-		onBuffer(buffer.toString(), fnItem, fnBuffer, fnCancel);
-	});
+		onBuffer(buffer, fnItem, fnBuffer);
+		return resume;
 
-	reader.on('end', function() {
+	}, function() {
 		self.countRead--;
 		self.next();
 
 		setImmediate(function() {
 			self.emit(name || 'read', false, isScalar ? count : selected.length);
 			fnCallback(isScalar ? count : selected);
-		});
-	});
-
-	reader.on('error', function(err) {
-
-		if (err.errno !== 34)
-			self.emit('error', err, 'read-stream');
-
-		self.countRead--;
-		self.next();
-
-		setImmediate(function() {
-			self.emit(name || 'read', false, 0);
-			fnCallback(isScalar ? count : []);
 		});
 	});
 
@@ -413,8 +408,6 @@ Database.prototype.each = function(fnDocument, fnCallback) {
 		return self;
 	}
 
-	var reader = fs.createReadStream(self.filename);
-
 	// opened streams
 	self.countRead++;
 	self.status = STATUS_READING;
@@ -429,7 +422,7 @@ Database.prototype.each = function(fnDocument, fnCallback) {
 		return current;
 	};
 
-	var fnItem = function(err, doc, cancel) {
+	var fnItem = function(err, doc) {
 
 		// clear buffer;
 		current = '';
@@ -454,36 +447,18 @@ Database.prototype.each = function(fnDocument, fnCallback) {
 	};
 
 	self.emit('each', true, 0);
+	
+	var reader = self.file.open(self.filename, MAX_BUFFER_SIZE, function(buffer) {
+		
+		onBuffer(buffer, fnItem, fnBuffer);
+		return true;
 
-	reader.on('data', function(buffer) {
-		onBuffer(buffer.toString(), fnItem, fnBuffer);
-	});
-
-	reader.on('end', function() {
-
+	}, function() {
 		self.countRead--;
 		self.next();
 
-		setImmediate(function() { 
+		setImmediate(function() {
 			self.emit('each', false, count);
-			operation.forEach(function(fn) {
-				if (fn.callback)
-					fn.callback();
-			});
-		});
-
-	});
-
-	reader.on('error', function(err) {
-
-		if (err.errno !== 34)
-			self.emit('error', err, 'each-stream');
-
-		self.countRead--;
-		self.next();
-
-		setImmediate(function() { 
-			self.emit('each', false, 0);
 			operation.forEach(function(fn) {
 				if (fn.callback)
 					fn.callback();
@@ -541,16 +516,29 @@ Database.prototype.sort = function(fnFilter, fnSort, itemSkip, itemTake, fnCallb
 /*
 	Clear database
 	@fnCallback {Function} :: optional
+	@changes {String} :: optional, clear description
 	return {Database}
 */
-Database.prototype.clear = function(fnCallback) {
+Database.prototype.clear = function(fnCallback, changes) {
 
 	var self = this;
-
-	if (typeof(fnCallback) === 'undefined')
+	var type = typeof(fnCallback);
+	
+	if (type === 'undefined')
 		fnCallback = null;
 
-	self.pendingClear.push(fnCallback);
+	if (type === 'string') {
+		changes = fnCallback;
+		fnCallback = null;
+	}
+
+	self.pendingClear.push(function() {
+		
+		if (changes)
+			self.changelog.insert(changes);
+
+		fnCallback && fnCallback();
+	});
 
 	if (self.status !== STATUS_UNKNOWN)
 		return self;
@@ -742,7 +730,6 @@ Database.prototype.update = function(fnUpdate, fnCallback, changes, type) {
 
 	self.status = STATUS_LOCKING;
 
-	var reader = fs.createReadStream(self.filename);
 	var current = '';
 	var operationLength = operation.length;
 	var lines = [];
@@ -816,7 +803,7 @@ Database.prototype.update = function(fnUpdate, fnCallback, changes, type) {
 		return current;
 	};
 
-	var fnItem = function(err, doc, cancel, json) {
+	var fnItem = function(err, doc, json) {
 
 		// clear buffer;
 		current = '';
@@ -848,28 +835,20 @@ Database.prototype.update = function(fnUpdate, fnCallback, changes, type) {
 		fnWrite(updated);
 	};
 
-	reader.on('data', function(buffer) {
+	var reader = self.file.open(self.filename, MAX_BUFFER_SIZE, function(buffer) {
+		
 		onBuffer(buffer.toString(), fnItem, fnBuffer);
-	});
+		return true;
 
-	reader.on('end', function() {
+	}, function(success) {
+
+		if (!success) {
+			self.next();
+			return;
+		}
+
 		completed = true;
 		fnWrite(null, lines.length > 0);
-	});
-
-	reader.on('error', function(err) {
-
-		if (err.errno !== 34)
-			self.emit('error', err, 'update/remove-stream');
-
-		self.emit('update/remove', false, countUpdate, countRemove);
-
-		operation.forEach(function(o) {
-			if (o.callback)
-				(function(cb, o) { setImmediate(function() { cb(); }); })(o.callback, o.count);
-		});
-
-		self.next();
 	});
 
 	return self;
@@ -1313,8 +1292,6 @@ View.prototype.read = function(fnFilter, fnCallback, itemSkip, itemTake, skipCou
 
 	self.status = STATUS_READING;
 
-	var reader = fs.createReadStream(self.filename);
-
 	if (typeof(fnFilter) === 'string')
 		fnFilter = filterPrepare(fnFilter);
 
@@ -1327,18 +1304,14 @@ View.prototype.read = function(fnFilter, fnCallback, itemSkip, itemTake, skipCou
 	var selected = [];
 	var current = '';
 	var count = 0;
-	var isCanceled = false;
-
-	var fnCancel = function() {
-		isCanceled = true;
-	};
+	var resume = true;
 
 	var fnBuffer = function(buffer) {
 		current += buffer;
 		return current;
 	};
 
-	var fnItem = function(err, doc, cancel) {
+	var fnItem = function(err, doc) {
 
 		// clear buffer;
 		current = '';
@@ -1348,7 +1321,7 @@ View.prototype.read = function(fnFilter, fnCallback, itemSkip, itemTake, skipCou
 
 		count++;
 		
-		if (isCanceled)
+		if (!resume)
 			return;
 
 		if (skip > 0 && count <= skip)
@@ -1357,21 +1330,21 @@ View.prototype.read = function(fnFilter, fnCallback, itemSkip, itemTake, skipCou
 		selected.push(doc);
 
 		if (take > 0 && selected.length === take)
-			cancel();
+			resume = false;
 	};
 
-	reader.on('data', function(buffer) {
+	var reader = self.file.open(self.filename, MAX_BUFFER_SIZE, function(buffer) {
 
-		if (skipCount && isCanceled) {
+		if (skipCount && !resume) {
 			count = -1;
-			return;
+			return false;
 		}
 
-		onBuffer(buffer.toString(), fnItem, fnBuffer, fnCancel);
-	});
+		onBuffer(buffer, fnItem, fnBuffer);
+		return resume;
 
-	reader.on('end', function() {
-		
+	}, function() {
+
 		self.countRead--;
 		self.next();
 
@@ -1379,22 +1352,6 @@ View.prototype.read = function(fnFilter, fnCallback, itemSkip, itemTake, skipCou
 			self.emit('view', false, self.name, count);
 			fnCallback(selected, count);
 		});
-
-	});
-
-	reader.on('error', function(err) {
-
-		if (err.errno !== 34)
-			self.db.emit('error', err, 'view-stream');
-
-		self.countRead--;
-		self.next();
-		
-		setImmediate(function() {
-			self.db.emit('view', false, self.name, 0);
-			fnCallback([], count);
-		});
-
 	});
 
 	return self;
@@ -1579,6 +1536,9 @@ Changelog.prototype.insert = function(description) {
 	if (!self.db.changes)
 		return self.db;
 
+	if (typeof(description) === 'undefined')
+		return self.db;
+
 	if (!util.isArray(description))
 		description = [description || ''];
 
@@ -1684,6 +1644,60 @@ Changelog.prototype.clear = function(fnCallback) {
 };
 
 // ========================================================================
+// READER PROTOTYPE
+// ========================================================================
+
+FileReader.prototype.open = function(filename, size, fnBuffer, fnCallback) {
+	var self = this;
+	fs.open(filename, 'r', function(err, fd) {
+
+	    if (err) {
+	        fnCallback(false);
+	        return;
+	    }
+
+	    size = size || 1024;
+
+		var next = function next(cancel, position) {
+
+			if (cancel) {
+				fs.close(fd);
+				fnCallback(true);
+				return;
+			}
+
+			self.read(fd, position + size, size, fnBuffer, next);
+		};
+
+	    self.read(fd, 0, size, fnBuffer, next);
+	});
+};
+
+FileReader.prototype.read = function(fd, position, size, fnBuffer, next) {
+    var buffer = new Buffer(size);
+
+    fs.read(fd, buffer, 0, size, position, function(err, num) {
+
+    	var cancel = num !== size;
+    	var data = buffer.toString('utf8', 0, num);
+
+    	if (cancel) {
+    		fnBuffer(data);
+    		next(true);
+    		return;
+    	}
+
+    	try {
+    		cancel = !fnBuffer(data);
+    	} catch (err) {
+    		cancel = true;
+
+    	}
+    	next(cancel, position, size);
+    });
+};
+
+// ========================================================================
 // INTERNAL
 // ========================================================================
 
@@ -1703,9 +1717,8 @@ function filterPrepare(fnFilter) {
 	@buffer {String}
 	@fnItem {Function}
 	@fnBuffer {Function}
-	@fnCancel {Function}
 */
-function onBuffer(buffer, fnItem, fnBuffer, fnCancel) {
+function onBuffer(buffer, fnItem, fnBuffer) {
 
 	var index = buffer.indexOf(NEWLINE);
 	
@@ -1718,12 +1731,12 @@ function onBuffer(buffer, fnItem, fnBuffer, fnCancel) {
 
 	try
 	{
-		fnItem(null, JSON.parse(json), fnCancel, json);
+		fnItem(null, JSON.parse(json), json);
 	} catch (ex) {
-		fnItem(ex, null, fnCancel, json);
+		fnItem(ex, null, json);
 	}
 
-	onBuffer(buffer.substring(index + 1), fnItem, fnBuffer, fnCancel);
+	onBuffer(buffer.substring(index + 1), fnItem, fnBuffer);
 };
 
 /*

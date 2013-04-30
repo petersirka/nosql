@@ -35,8 +35,8 @@ db.on('resume', function() {
 	console.log('RESUME');
 });
 
-db.on('each', function() {
-	console.log('each ---> ');
+db.on('each', function(status) {
+	console.log('each ---> ', status);
 });
 
 db.on('complete', function(status) {
@@ -86,7 +86,7 @@ if (read) {
 
 		db.each(function(o) {
 			if (o.index === 4300)
-				console.log(o);
+				console.log('>>> ', o);
 		});
 
 	}, 500);
@@ -152,6 +152,6 @@ setTimeout(function() {
 	db.clear(function() {
 		console.log('clear');
 		db.insert({r: true});
-	});
+	}, 'clear');
 
 }, 7000);
