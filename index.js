@@ -19,6 +19,8 @@
 // OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE
 // USE OR OTHER DEALINGS IN THE SOFTWARE.
 
+"use strict";
+
 var fs = require('fs');
 var path = require('path');
 var util = require('util');
@@ -1452,6 +1454,7 @@ Binary.prototype.insert = function(name, type, buffer, fnCallback, changes) {
 
 	stream.write(header);
 	stream.end(buffer);
+	stream = null;
 
 	if (changes)
 		self.db.changelog.insert(changes);
@@ -1577,7 +1580,7 @@ Changelog.prototype.insert = function(description) {
 		self.db.emit('change', line);
 	});
 	
-	fs.appendFile(self.filename, lines, function(err) {});	
+	fs.appendFile(self.filename, lines, function(err) {});
 	return self.db;
 };
 
@@ -1662,6 +1665,7 @@ FileReader.prototype.open = function(filename, size, fnBuffer, fnCallback) {
 
 			if (cancel) {
 				fs.close(fd);
+				fd = null;
 				fnCallback(true);
 				return;
 			}
@@ -1691,8 +1695,8 @@ FileReader.prototype.read = function(fd, position, size, fnBuffer, next) {
     		cancel = !fnBuffer(data);
     	} catch (err) {
     		cancel = true;
-
     	}
+
     	next(cancel, position, size);
     });
 };

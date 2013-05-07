@@ -1,6 +1,6 @@
 {
     "name": "nosql",
-    "version": "1.0.2-4",
+    "version": "1.0.2-5",
     "description": "NoSQL embedded database for small node.js projects (supports insert, update, remove, views, drop)",
     "main": "./index.js",
     "keywords": [ "nosql", "database", "embed", "embedded", "db", "binary"],
