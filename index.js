@@ -238,6 +238,7 @@ Database.prototype.insert = function(arr, fnCallback, changes) {
 
 		builder = null;
 		builderChanges = null;
+		arr = null;
 	});
 
 	return self;
