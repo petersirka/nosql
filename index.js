@@ -854,7 +854,7 @@ Database.prototype.update = function(fnUpdate, fnCallback, changes, type) {
 		}
 
 		completed = true;
-		fnWrite(null, lines.length > 0);
+		fnWrite(null, true);
 	});
 
 	return self;
