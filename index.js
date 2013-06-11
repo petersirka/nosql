@@ -19,7 +19,7 @@
 // OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE
 // USE OR OTHER DEALINGS IN THE SOFTWARE.
 
-"use strict";
+'use strict';
 
 var fs = require('fs');
 var path = require('path');
@@ -1016,7 +1016,7 @@ Database.prototype.next = function() {
 	@fnCallback {Function} :: params: @doc {Array of Object}, @count {Number}
 	@itemSkip {Number} :: optional, default 0
 	@itemTake {Number} :: optional, default 0
-	@fnFilter {Function} :: optional, IMPORTANT: you must return {Boolean}
+	@fnFilter {Function} :: optional, IMPORTANT: must return {Boolean}
 */
 Views.prototype.all = function(name, fnCallback, itemSkip, itemTake, fnFilter) {
 
@@ -1026,6 +1026,20 @@ Views.prototype.all = function(name, fnCallback, itemSkip, itemTake, fnFilter) {
 	if (typeof(view) === 'undefined') {
 		view = self.getView(name);
 		self.views[name] = view;
+	}
+
+	var type = typeof(itemSkip);
+
+	if (type === 'function' || type === 'string') {
+		fnFilter = itemSkip;
+		itemSkip = 0;
+		itemTake = 0;
+	} else {
+		type = typeof(itemTake);
+		if (type === 'function' || type === 'string') {
+			fnFilter = itemTake;
+			itemTake = 0;
+		}
 	}
 
 	if (typeof(fnFilter) === 'string')
