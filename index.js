@@ -1016,7 +1016,7 @@ Database.prototype.next = function() {
 	@fnCallback {Function} :: params: @doc {Array of Object}, @count {Number}
 	@itemSkip {Number} :: optional, default 0
 	@itemTake {Number} :: optional, default 0
-	@fnFilter {Function} :: optional, IMPORTANT: must return {Boolean}
+	@fnFilter {Function} :: optional, IMPORTANT: you must return {Boolean}
 */
 Views.prototype.all = function(name, fnCallback, itemSkip, itemTake, fnFilter) {
 

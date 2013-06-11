@@ -19,6 +19,12 @@ setTimeout(function() {
 
 }, 1000);
 
+setTimeout(function() {
+
 db.view.all('test', function(selected, count) {
 	console.log(selected, count);
-}, 50, 10);
+}, function(f) {
+	return f.index > 10 && f.index < 20;
+});
+
+}, 2000);
