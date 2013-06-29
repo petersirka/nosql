@@ -33,12 +33,12 @@ $ npm install nosql
 ## NEW: CHANGELOG
 
 ```js
-var nosql = require('nosql').load('/users/petersirka/desktop/database.nosql';
+var nosql = require('nosql').load('/users/petersirka/desktop/database.nosql');
 
 nosql.insert({ name: 'Peter' }, 'insert new user');
 nosql.update(..., 'update all users where age > 20');
 
-nosql.binary.insert(...., 'new user photo');
+nosql.binary.insert(..., 'new user photo');
 ```
 
 ###	Changelog: /users/petersirka/desktop/database.changes
