@@ -14,7 +14,11 @@ db.stored.create('rename', function(nosql, next) {
 });
 */
 
+//db.stored.remove('rename');
+
 //db.stored.clear();
+/*
 db.stored.execute('rename', function(a) {
 	console.log(a);
 });
+*/

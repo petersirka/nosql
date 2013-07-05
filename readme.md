@@ -18,7 +18,8 @@ node.js NoSQL embedded database
 * __No dependencies__
 * [Documentation](http://www.partialjs.com/documentation/nosql/)
 * [News on Twitter - @partialjs](https://twitter.com/partialjs)
-* [E-shop in NoSQL embedded database](http://eshop.partialjs.com)
+* [E-shop via NoSQL embedded database](http://eshop.partialjs.com)
+* [Blog via NoSQL embedded database](http://blog.partialjs.com/)
 * Implemented in [partial.js / web application framework](http://www.partialjs.com)
 
 ## Installation
