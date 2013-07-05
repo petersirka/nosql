@@ -3,6 +3,7 @@
 node.js NoSQL embedded database
 ===============================
 
+* __NEW:__ Supports stored functions
 * __NEW:__ Supports changelog (insert, update, remove, drop, create)
 * __NEW:__ Supports Binary files (insert, read, remove)
 * Written in JavaScript
@@ -28,6 +29,47 @@ $ sudo npm install -g nosql
 // or
 
 $ npm install nosql
+```
+
+## NEW: STORED FUNCTIONS
+
+> version +1.0.3-0
+
+```js
+var nosql = require('nosql').load('/users/petersirka/desktop/database.nosql');
+
+// Create a new stored function
+// nosql.stored.insert(name, function, [callback], [changes]);
+nosql.stored.create('counter', function(nosql, next) {
+	
+	nosql.update(function(doc) {
+		doc.counter = (doc.counter || 0) + 1;
+		return doc;
+	}, function() {
+		// next calls callback functions in nosql.stored.execute();
+		next();
+	});
+
+}, 'insert new counter function');
+
+// Remove a stored function
+// nosql.stored.remove(name, [callback], [changes]);
+nosql.stored.remove('counter');
+
+// Remove all stored functions
+// nosql.stored.clear([callback]);
+nosql.stored.clear();
+
+// Execute a stored function
+// nosql.stored.execute(name, [callback], [changes]);
+nosql.stored.execute('counter', function() {
+	console.log('counter DONE.');
+});
+
+// or
+
+nosql.stored.execute('counter');
+
 ```
 
 ## NEW: CHANGELOG
@@ -227,12 +269,12 @@ fs.readFile('/users/petersirka/desktop/picture.jpg', function(err, data) {
 
 	console.log(id);
 
-	// result: 1365699379204dab2csor
+	// result: database#1365699379204dab2csor
 	// nosql.binary.read(id, .......);
 
 });
 
-nosql.binary.read('1365699379204dab2csor', function(err, stream, header) {
+nosql.binary.read('database#1365699379204dab2csor', function(err, stream, header) {
 	
 	if (err)
 		return;
@@ -284,6 +326,9 @@ nosql.on('clear', function(begin, success) {});
 nosql.on('drop', function(begin, success) {});
 nosql.on('complete', function(old_status) {});
 nosql.on('change', function(description) {});
+nosql.on('stored', function(name) {});
+nosql.on('stored/load', function() {});
+nosql.on('stored/save', function() {});
 
 ```
 
@@ -325,7 +370,6 @@ function addUser() {
 
 	});
 }
-
 
 // ============================================================================
 // How to summarize prices?
