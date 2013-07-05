@@ -42,6 +42,8 @@ var nosql = require('nosql').load('/users/petersirka/desktop/database.nosql');
 // nosql.stored.create(name, function, [callback], [changes]);
 nosql.stored.create('counter', function(nosql, next) {
 	
+	// nosql === nosql embedded database object
+
 	nosql.update(function(doc) {
 		doc.counter = (doc.counter || 0) + 1;
 		return doc;
@@ -328,7 +330,8 @@ nosql.on('complete', function(old_status) {});
 nosql.on('change', function(description) {});
 nosql.on('stored', function(name) {});
 nosql.on('stored/load', function() {});
-nosql.on('stored/save', function() {});
+nosql.on('stored/clear', function() {});
+nosql.on('stored/save', function(name) {});
 
 ```
 

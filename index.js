@@ -1463,7 +1463,7 @@ View.prototype.next = function() {
 	@fn {Function}
 	@fnCallback {Function} :: optional
 	@changes {String} :: optional
-	return {Database}	
+	return {Database}
 */
 Stored.prototype.create = function(name, fn, fnCallback, changes) {
 
@@ -1474,7 +1474,7 @@ Stored.prototype.create = function(name, fn, fnCallback, changes) {
 
 	self._load(function() {
 		self.stored[name] = fn;
-		self._save(fnCallback, changes);
+		self._save(fnCallback, changes, name);
 	});
 
 	return self.db;
@@ -1492,7 +1492,7 @@ Stored.prototype.remove = function(name, fnCallback, changes) {
 
 	self._load(function() {
 		delete self.stored[name];
-		self._save(fnCallback, changes);
+		self._save(fnCallback, changes, name);
 	});
 
 	return self.db;
@@ -1514,6 +1514,8 @@ Stored.prototype.clear = function(fnCallback, changes) {
 		if (changes)
 			self.db.changelog.insert(changes);
 
+		self.db.emit('stored/clear');
+
 		if (!exists) {
 			fnCallback && fnCallback.call(self.db);
 			return;
@@ -1527,7 +1529,7 @@ Stored.prototype.clear = function(fnCallback, changes) {
 	return self.db;
 };
 
-Stored.prototype._save = function(fnCallback, changes) {
+Stored.prototype._save = function(fnCallback, changes, name) {
 	var self = this;
 	var filename = self.filename;
 
@@ -1540,11 +1542,12 @@ Stored.prototype._save = function(fnCallback, changes) {
 	fs.writeFile(filename, JSON.stringify(self.stored), function(err) {
 
 		if (err)
-			self.db.emit('error', err, 'stored/save');
+			self.db.emit('error', err, 'stored/save', name);
 
 		if (changes)
 			self.db.changelog.insert(changes);
 
+		self.db.emit('stored/save', name);
 		fnCallback && fnCallback.call(self.db);
 	});
 
