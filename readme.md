@@ -39,7 +39,7 @@ $ npm install nosql
 var nosql = require('nosql').load('/users/petersirka/desktop/database.nosql');
 
 // Create a new stored function
-// nosql.stored.insert(name, function, [callback], [changes]);
+// nosql.stored.create(name, function, [callback], [changes]);
 nosql.stored.create('counter', function(nosql, next) {
 	
 	nosql.update(function(doc) {
