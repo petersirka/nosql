@@ -41,7 +41,7 @@ var nosql = require('nosql').load('/users/petersirka/desktop/database.nosql');
 
 // Create a new stored function
 // nosql.stored.create(name, function, [callback], [changes]);
-nosql.stored.create('counter', function(nosql, next) {
+nosql.stored.create('counter', function(nosql, next, params) {
 	
 	// nosql === nosql embedded database object
 
@@ -64,14 +64,14 @@ nosql.stored.remove('counter');
 nosql.stored.clear();
 
 // Execute a stored function
-// nosql.stored.execute(name, [callback], [changes]);
+// nosql.stored.execute(name, [params], [callback], [changes]);
 nosql.stored.execute('counter', function() {
 	console.log('counter DONE.');
 });
 
 // or
 
-nosql.stored.execute('counter');
+nosql.stored.execute('counter', { increment: 1 });
 
 ```
 

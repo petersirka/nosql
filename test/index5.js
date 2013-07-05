@@ -4,21 +4,19 @@ var db = nosql.load(filename);
 
 // db.insert({ name: 'Peter' });
 /*
-db.stored.create('rename', function(nosql, next) {
+db.stored.create('rename', function(nosql, next, params) {
 	
 	nosql.all(function(selected) {
 		console.log(selected);
 	});
 
-	next('NOOOO');
+	console.log('params', params);
 });
 */
-
 //db.stored.remove('rename');
 
 //db.stored.clear();
-/*
-db.stored.execute('rename', function(a) {
+
+db.stored.execute('rename', { str: 'TEST' }, function(a) {
 	console.log(a);
 });
-*/
