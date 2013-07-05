@@ -49,7 +49,7 @@ nosql.stored.create('counter', function(nosql, next, params) {
 		doc.counter = (doc.counter || 0) + 1;
 		return doc;
 	}, function() {
-		// next calls callback functions in nosql.stored.execute();
+		// next calls callback function in nosql.stored.execute();
 		next();
 	});
 
