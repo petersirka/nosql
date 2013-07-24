@@ -1569,7 +1569,7 @@ Stored.prototype._load = function(fnCallback) {
 		fs.readFile(filename, function(err, data) {
 
 			if (err) {
-				self.db.emit('error', ex, 'stored/load');
+				self.db.emit('error', err, 'stored/load');
 				fnCallback && fnCallback.call(self.db);
 				return;
 			}
