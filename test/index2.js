@@ -32,7 +32,10 @@ setTimeout(function() {
 db.views.all('test', function(selected, count) {
 	console.log(selected, count);
 }, function(f) {
-	return f.index > 10 && f.index < 20;
+	if (f.index > 10 && f.index < 20) {		
+		f.kokotar = true;
+		return f;
+	}
 });
 
 }, 3000);

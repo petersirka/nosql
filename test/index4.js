@@ -1,5 +1,5 @@
 var fs = require('fs');
-var filename = '/users/petersirka/desktop/aaa';
+var filename = '/users/petersirka/desktop/test/dass';
 var nosql = require('../index');
 var db = nosql.load(filename);
 var assert = require('assert');
