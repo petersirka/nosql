@@ -308,7 +308,7 @@ Database.prototype.read = function(fnMap, fnCallback, itemSkip, itemTake, isScal
 	}
 
 	if (typeof(fnMap) === STRING)
-		fnMap = filterPrepare(fnMap);	
+		fnMap = filterPrepare(fnMap);
 
 	if (fnMap === null)
 		fnMap = function(doc) { return doc; };
