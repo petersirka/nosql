@@ -75,6 +75,7 @@ if (read) {
 				str += o.index + '';
 			});
 
+			console.log('--' + str);
 			assert.ok(str === '234', 'read');
 
 			console.log(selected);			

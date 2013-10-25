@@ -280,14 +280,14 @@ Database.prototype.insert = function(arr, fnCallback, changes) {
 
 /*
 	Read data from database
-	@fnFilter {Function} :: params: @doc {Object}, IMPORTANT: you must return {Boolean}
+	@fnMap {Function} :: params: @doc {Object}, IMPORTANT: you must return {Object}
 	@fnCallback {Function} :: params: @selected {Array of Object} or {Number} if is scalar
 	@itemSkip {Number} :: optional, default 0
 	@itemTake {Number} :: optional, defualt 0
 	@isScalar {Boolean} :: optional, default is false
 	return {Database}
 */
-Database.prototype.read = function(fnFilter, fnCallback, itemSkip, itemTake, isScalar, name) {
+Database.prototype.read = function(fnMap, fnCallback, itemSkip, itemTake, isScalar, name) {
 
 	var self = this;
 	var skip = itemSkip || 0;
@@ -296,22 +296,22 @@ Database.prototype.read = function(fnFilter, fnCallback, itemSkip, itemTake, isS
 	if (self.status === STATUS_LOCKING || self.status === STATUS_PENDING || self.countRead >= MAX_READSTREAM) {
 
 		self.pendingRead.push(function() {
-			self.read(fnFilter, fnCallback, itemSkip, itemTake, isScalar);
+			self.read(fnMap, fnCallback, itemSkip, itemTake, isScalar);
 		});
 
 		return self;
 	}
 
 	if (typeof(fnCallback) === UNDEFINED) {
-		fnCallback = fnFilter;
-		fnFilter = function() { return true; };
+		fnCallback = fnMap;
+		fnMap = function(doc) { return doc; };
 	}
 
-	if (typeof(fnFilter) === STRING)
-		fnFilter = filterPrepare(fnFilter);
+	if (typeof(fnMap) === STRING)
+		fnMap = filterPrepare(fnMap);	
 
-	if (fnFilter === null)
-		fnFilter = function() { return true; };
+	if (fnMap === null)
+		fnMap = function(doc) { return doc; };
 
 	self.emit(name || 'read', true, 0);
 
@@ -337,7 +337,11 @@ Database.prototype.read = function(fnFilter, fnCallback, itemSkip, itemTake, isS
 		// clear buffer;
 		current = '';
 
-		if (err || !fnFilter(doc))
+		if (err)
+			return;
+
+		var item = fnMap(doc);
+		if (item === false || item === null || typeof(item) === UNDEFINED)
 			return;
 
 		count++;
@@ -346,7 +350,7 @@ Database.prototype.read = function(fnFilter, fnCallback, itemSkip, itemTake, isS
 			return;
 
 		if (!isScalar)
-			selected.push(doc);
+			selected.push(item === true ? doc : item);
 
 		if (take > 0 && selected.length === take)
 			resume = false;
@@ -372,39 +376,39 @@ Database.prototype.read = function(fnFilter, fnCallback, itemSkip, itemTake, isS
 
 /*
 	Read all documents from database
-	@fnFilter {Function} :: IMPORTANT: you must return {Boolean}
+	@fnMap {Function} :: IMPORTANT: you must return {Object}
 	@fnCallback {Function} :: params: @doc {Array of Object}
 	@itemSkip {Number} :: optional, default 0
 	@itemTake {Number} :: optional, default 0
 	return {Database}
 */
-Database.prototype.all = function(fnFilter, fnCallback, itemSkip, itemTake) {
-	return this.read(fnFilter, fnCallback, itemSkip, itemTake, false, 'all');
+Database.prototype.all = function(fnMap, fnCallback, itemSkip, itemTake) {
+	return this.read(fnMap, fnCallback, itemSkip, itemTake, false, 'all');
 };
 
 /*
 	Read one document from database
-	@fnFilter {Function} :: must return {Boolean}
+	@fnMap {Function} :: must return {Object}
 	@fnCallback {Function} :: params: @doc {Object}
 	return {Database}
 */
-Database.prototype.one = function(fnFilter, fnCallback) {
+Database.prototype.one = function(fnMap, fnCallback) {
 
 	var cb = function(selected) {
 		fnCallback(selected[0] || null);
 	};
 
-	return this.read(fnFilter, cb, 0, 1, false, 'one');
+	return this.read(fnMap, cb, 0, 1, false, 'one');
 };
 
 /*
 	Read TOP "x" documents from database
-	@fnFilter {Function} :: IMPORTANT: you must return {Boolean}
+	@fnMap {Function} :: IMPORTANT: you must return {Object}
 	@fnCallback {Function} :: params: @doc {Array of Object}
 	return {Database}
 */
-Database.prototype.top = function(max, fnFilter, fnCallback) {
-	return this.read(fnFilter, fnCallback, 0, max, false, 'top');
+Database.prototype.top = function(max, fnMap, fnCallback) {
+	return this.read(fnMap, fnCallback, 0, max, false, 'top');
 };
 
 /*
@@ -515,21 +519,21 @@ Database.prototype.each = function(fnDocument, fnCallback) {
 
 /*
 	Read and sort documents from database (SLOWLY)
-	@fnFilter {Function} :: IMPORTANT: you must return {Boolean}
+	@fnMap {Function} :: IMPORTANT: you must return {Object}
 	@fnSort {Function} :: ---> array.sort()
 	@itemSkip {Number}, default 0 (if itemSkip = 0 and itemTake = 0 then return all documents)
 	@itemTake {Number}, default 0 (if itemSkip = 0 and itemTake = 0 then return all documents)
 	@fnCallback {Function} :: params: @doc {Object}, @count {Number}
 	return {Database}
 */
-Database.prototype.sort = function(fnFilter, fnSort, itemSkip, itemTake, fnCallback) {
+Database.prototype.sort = function(fnMap, fnSort, itemSkip, itemTake, fnCallback) {
 
 	var self = this;
 	var selected = [];
 	var count = 0;
 
-	if (typeof(fnFilter) === STRING)
-		fnFilter = filterPrepare(fnFilter);
+	if (typeof(fnMap) === STRING)
+		fnMap = filterPrepare(fnMap);
 
 	itemTake = itemTake || 30;
 	itemSkip = itemSkip || 0;
@@ -545,11 +549,12 @@ Database.prototype.sort = function(fnFilter, fnSort, itemSkip, itemTake, fnCallb
 
 	var onItem = function(doc) {
 
-		if (!fnFilter(doc))
+		var item = fnMap(doc);
+		if (item === false || item === null || typeof(item) === UNDEFINED)
 			return;
 
 		count++;
-		selected.push(doc);
+		selected.push(item === true ? doc : item);
 	};
 
 	self.each(onItem, onCallback);
@@ -946,7 +951,7 @@ Database.prototype.remove = function(fnFilter, fnCallback, changes) {
 
 	var filter = function(item) {
 
-		if (fnFilter(item))
+		if (fnFilter(item) === true)
 			return null;
 
 		return item;
@@ -1104,9 +1109,9 @@ Database.prototype._metaLoad = function(callback) {
 	@fnCallback {Function} :: params: @doc {Array of Object}, @count {Number}
 	@itemSkip {Number} :: optional, default 0
 	@itemTake {Number} :: optional, default 0
-	@fnFilter {Function} :: optional, IMPORTANT: you must return {Boolean}
+	@fnMap {Function} :: optional, IMPORTANT: you must return {Object}
 */
-Views.prototype.all = function(name, fnCallback, itemSkip, itemTake, fnFilter) {
+Views.prototype.all = function(name, fnCallback, itemSkip, itemTake, fnMap) {
 
 	var self = this;
 	var view = self.views[name];
@@ -1119,24 +1124,24 @@ Views.prototype.all = function(name, fnCallback, itemSkip, itemTake, fnFilter) {
 	var type = typeof(itemSkip);
 
 	if (type === FUNCTION || type === STRING) {
-		fnFilter = itemSkip;
+		fnMap = itemSkip;
 		itemSkip = 0;
 		itemTake = 0;
 	} else {
 		type = typeof(itemTake);
 		if (type === FUNCTION || type === STRING) {
-			fnFilter = itemTake;
+			fnMap = itemTake;
 			itemTake = 0;
 		}
 	}
 
-	if (typeof(fnFilter) === STRING)
-		fnFilter = filterPrepare(fnFilter);
+	if (typeof(fnMap) === STRING)
+		fnMap = filterPrepare(fnMap);
 
-	if (typeof(fnFilter) !== FUNCTION)
-		fnFilter = function(o) { return true; };
+	if (typeof(fnMap) !== FUNCTION)
+		fnMap = function(o) { return o; };
 
-	view.read(fnFilter, fnCallback, itemSkip, itemTake);
+	view.read(fnMap, fnCallback, itemSkip, itemTake);
 	return self.db;
 };
 
@@ -1145,10 +1150,10 @@ Views.prototype.all = function(name, fnCallback, itemSkip, itemTake, fnFilter) {
 	@name {String}
 	@top {Number}
 	@fnCallback {Function} :: params: @doc {Array of Object}
-	@fnFilter {Function} :: optional, IMPORTANT: you must return {Boolean}
+	@fnMap {Function} :: optional, IMPORTANT: you must return {Object}
 	return {Database}
 */
-Views.prototype.top = function(name, top, fnCallback, fnFilter) {
+Views.prototype.top = function(name, top, fnCallback, fnMap) {
 
 	var self = this;
 	var view = self.views[name];
@@ -1158,24 +1163,24 @@ Views.prototype.top = function(name, top, fnCallback, fnFilter) {
 		self.views[name] = view;
 	}
 
-	if (typeof(fnFilter) === STRING)
-		fnFilter = filterPrepare(fnFilter);
+	if (typeof(fnMap) === STRING)
+		fnMap = filterPrepare(fnMap);
 
-	if (typeof(fnFilter) !== FUNCTION)
-		fnFilter = function(o) { return true; };
+	if (typeof(fnMap) !== FUNCTION)
+		fnMap = function(o) { return o; };
 
-	view.read(fnFilter, fnCallback, 0, top, true);
+	view.read(fnMap, fnCallback, 0, top, true);
 	return self.db;
 };
 
 /*
 	Read one document from view
 	@name {String}
-	@fnFilter {Function} :: optional, IMPORTANT: you must return {Boolean}
+	@fnMap {Function} :: optional, IMPORTANT: you must return {Object}
 	@fnCallback {Function} :: params: @doc {Object}
 	return {Database}
 */
-Views.prototype.one = function(name, fnFilter, fnCallback) {
+Views.prototype.one = function(name, fnMap, fnCallback) {
 
 	var self = this;
 	var view = self.views[name];
@@ -1186,17 +1191,17 @@ Views.prototype.one = function(name, fnFilter, fnCallback) {
 	}
 
 	if (typeof(fnCallback) === UNDEFINED) {
-		fnCallback = fnFilter;
-		fnFilter = null;
+		fnCallback = fnMap;
+		fnMap = null;
 	}
 
-	if (typeof(fnFilter) === STRING)
-		fnFilter = filterPrepare(fnFilter);
+	if (typeof(fnMap) === STRING)
+		fnMap = filterPrepare(fnMap);
 
-	if (typeof(fnFilter) !== FUNCTION)
-		fnFilter = function(o) { return true; };
+	if (typeof(fnMap) !== FUNCTION)
+		fnMap = function(o) { return o; };
 
-	view.read(fnFilter, fnCallback, 0, 1, true);
+	view.read(fnMap, fnCallback, 0, 1, true);
 	return self.db;
 };
 
@@ -1355,10 +1360,9 @@ Views.prototype.refresh = function(name, fnCallback) {
 /*
 	Create view
 	@name {String}
-	@fnFilter {Function} :: IMPORTANT: you must return {Boolean}
+	@fnMap {Function} :: IMPORTANT: you must return {Boolean}
 	@fnSort {Function} :: ---> array.sort()
 	@fnCallback {Function} :: params: @count {Number}
-	@fnUpdate {Function} :: optional, IMPORTANT: you must return updated document
 	@changes {Function} :: optional, create description
 	return {Views}
 */
@@ -1416,14 +1420,14 @@ Views.prototype.getFileName = function(name) {
 
 /*
 	Read documents from view
-	@fnFilter {Function} :: IMPORTANT: you must return {Boolean}
+	@fnMap {Function} :: IMPORTANT: you must return {Object}
 	@fnCallback {Function} :: params: @selected {Array of Object}, @count {Number}
 	@itemSkip {Number} :: optional, default 0
 	@itemTake {Number} :: optional, default 0
 	@skipCount {Boolean} :: optional, default false
 	return {View}
 */
-View.prototype.read = function(fnFilter, fnCallback, itemSkip, itemTake, skipCount, isScalar) {
+View.prototype.read = function(fnMap, fnCallback, itemSkip, itemTake, skipCount, isScalar) {
 
 	var self = this;
 	var skip = itemSkip || 0;
@@ -1434,7 +1438,7 @@ View.prototype.read = function(fnFilter, fnCallback, itemSkip, itemTake, skipCou
 	if (self.status === STATUS_LOCKING || self.countRead >= MAX_READSTREAM) {
 
 		self.pendingRead.push(function() {
-			self.read(fnFilter, fnCallback, itemSkip, itemTake, isScalar);
+			self.read(fnMap, fnCallback, itemSkip, itemTake, isScalar);
 		});
 
 		return self;
@@ -1442,11 +1446,11 @@ View.prototype.read = function(fnFilter, fnCallback, itemSkip, itemTake, skipCou
 
 	self.status = STATUS_READING;
 
-	if (typeof(fnFilter) === STRING)
-		fnFilter = filterPrepare(fnFilter);
+	if (typeof(fnMap) === STRING)
+		fnMap = filterPrepare(fnMap);
 
-	if (fnFilter === null)
-		fnFilter = function() { return true; };
+	if (fnMap === null)
+		fnMap = function(o) { return o; };
 
 	self.db.emit('view', true, self.name, 0);
 	self.countRead++;
@@ -1463,21 +1467,26 @@ View.prototype.read = function(fnFilter, fnCallback, itemSkip, itemTake, skipCou
 
 	var fnItem = function(err, doc) {
 
+		if (!resume)
+			return;
+
 		// clear buffer;
 		current = '';
 
-		if (err || !fnFilter(doc))
+		if (err)
+			return;
+
+		var item = fnMap(doc);
+		if (item === false || item === null || typeof(item) === UNDEFINED)
 			return;
 
 		count++;
 
-		if (!resume)
-			return;
-
 		if (skip > 0 && count <= skip)
 			return;
 
-		selected.push(doc);
+		if (!isScalar)
+			selected.push(item === true ? doc : item);
 
 		if (take > 0 && selected.length === take)
 			resume = false;
