@@ -34,19 +34,26 @@ var STATUS_LOCKING = 3;
 var STATUS_PENDING = 4;
 var NEWLINE = '\n';
 
+var VERSION = 'v2.0.0';
 var EXTENSION = '.nosql';
 var EXTENSION_VIEW = '.nosql';
 var EXTENSION_BINARY = '.nosql-binary';
 var EXTENSION_TMP = '.nosql-tmp';
 var EXTENSION_CHANGES = '.changes';
 var EXTENSION_STORED = '.nosql-stored';
+var EXTENSION_META = '.meta';
 
 var MAX_WRITESTREAM = 2;
 var MAX_READSTREAM = 4;
 var MAX_BUFFER_SIZE = 1024 * 4;
 var BINARY_HEADER_LENGTH = 2000;
 
-if (typeof(setImmediate) === 'undefined') {
+var STRING = 'string';
+var FUNCTION = 'function';
+var UNDEFINED = 'undefined';
+var BOOLEAN = 'boolean';
+
+if (typeof(setImmediate) === UNDEFINED) {
 	global.setImmediate = function(cb) {
 		process.nextTick(cb);
 	};
@@ -60,14 +67,15 @@ if (typeof(setImmediate) === 'undefined') {
 */
 function Database(filename, directory, changes) {
 
-	if (typeof(directory) === 'boolean') {
+	if (typeof(directory) === BOOLEAN) {
 		changes = directory;
 		directory = null;
 	}
 
+	this.isReady = false;
 	this.status_prev = STATUS_UNKNOWN;
 	this.status = STATUS_UNKNOWN;
-	this.changes = typeof(changes) === 'undefined' ? true : changes === true;
+	this.changes = typeof(changes) === UNDEFINED ? true : changes === true;
 
 	this.countRead = 0;
 	this.countWrite = 0;
@@ -88,15 +96,25 @@ function Database(filename, directory, changes) {
 	this.filenameTemp = filename + EXTENSION_TMP;
 	this.filenameChanges = filename + EXTENSION_CHANGES;
 	this.filenameStored = filename + EXTENSION_STORED;
+	this.filenameMeta = filename + EXTENSION_META;
+
 	this.name = path.basename(filename);
 
 	this.directory = path.dirname(filename);
-	this.view = new Views(this);
+	this.views = new Views(this);
+
+	this.meta = {
+		version: VERSION,
+		views: {},
+		stored: {}
+	};
 
 	this.binary = (directory || '').length === 0 ? null : new Binary(this, directory);
 	this.changelog = new Changelog(this, this.filenameChanges);
 	this.file = new FileReader(this);
 	this.stored = new Stored(this, this.filenameStored);
+
+	this._metaLoad();
 }
 
 /*
@@ -187,7 +205,7 @@ Database.prototype.insert = function(arr, fnCallback, changes) {
 
 	var self = this;
 
-	if (typeof(fnCallback) === 'string') {
+	if (typeof(fnCallback) === STRING) {
 		changes = fnCallback;
 		fnCallback = null;
 	}
@@ -212,7 +230,7 @@ Database.prototype.insert = function(arr, fnCallback, changes) {
 
 	arr.forEach(function(doc) {
 
-		if (typeof(doc.json) === 'undefined') {
+		if (typeof(doc.json) === UNDEFINED) {
 			builder.push(doc);
 
 			if (changes)
@@ -253,6 +271,12 @@ Database.prototype.insert = function(arr, fnCallback, changes) {
 		builder = null;
 		builderChanges = null;
 		arr = null;
+
+		var keys = Object.keys(self.meta.views);
+		var length = keys.length;
+		for (var i = 0; i < length; i++)
+			self.views.refresh(keys[i]);
+
 	}, self);
 
 	return self;
@@ -282,12 +306,12 @@ Database.prototype.read = function(fnFilter, fnCallback, itemSkip, itemTake, isS
 		return self;
 	}
 
-	if (typeof(fnCallback) === 'undefined') {
+	if (typeof(fnCallback) === UNDEFINED) {
 		fnCallback = fnFilter;
 		fnFilter = function() { return true; };
 	}
 
-	if (typeof(fnFilter) === 'string')
+	if (typeof(fnFilter) === STRING)
 		fnFilter = filterPrepare(fnFilter);
 
 	if (fnFilter === null)
@@ -506,7 +530,7 @@ Database.prototype.sort = function(fnFilter, fnSort, itemSkip, itemTake, fnCallb
 	var selected = [];
 	var count = 0;
 
-	if (typeof(fnFilter) === 'string')
+	if (typeof(fnFilter) === STRING)
 		fnFilter = filterPrepare(fnFilter);
 
 	itemTake = itemTake || 30;
@@ -545,10 +569,10 @@ Database.prototype.clear = function(fnCallback, changes) {
 	var self = this;
 	var type = typeof(fnCallback);
 
-	if (type === 'undefined')
+	if (type === UNDEFINED)
 		fnCallback = null;
 
-	if (type === 'string') {
+	if (type === STRING) {
 		changes = fnCallback;
 		fnCallback = null;
 	}
@@ -623,7 +647,7 @@ Database.prototype.drop = function(fnCallback) {
 
 	var self = this;
 
-	if (typeof(fnCallback) === 'undefined')
+	if (typeof(fnCallback) === UNDEFINED)
 		fnCallback = null;
 
 	self.pendingDrop.push(fnCallback);
@@ -662,6 +686,7 @@ Database.prototype.drop = function(fnCallback) {
 			return;
 		}
 
+		fn.unlink(self.filenameMeta, noop);
 		fs.unlink(self.filename, function(err) {
 
 			if (err)
@@ -682,13 +707,14 @@ Database.prototype.drop = function(fnCallback) {
 	return self;
 };
 
+function noop() {};
+
 /*
 	Internal function :: remove all files (views, binary)
 	!!! SYNC !!!
 */
 Database.prototype._drop = function() {
 	var self = this;
-	var noop = function() {};
 
 	fs.readdirSync(self.directory).forEach(function(filename) {
 
@@ -731,12 +757,12 @@ Database.prototype._drop = function() {
 Database.prototype.update = function(fnUpdate, fnCallback, changes, type) {
 	var self = this;
 
-	if (typeof(fnCallback) === 'string') {
+	if (typeof(fnCallback) === STRING) {
 		changes = fnCallback;
 		fnCallback = null;
 	}
 
-	if (typeof(fnUpdate) !== 'undefined')
+	if (typeof(fnUpdate) !== UNDEFINED)
 		self.pendingLock.push(updatePrepare(fnUpdate, fnCallback, changes, type || 'update'));
 
 	if (self.status !== STATUS_UNKNOWN) {
@@ -791,7 +817,7 @@ Database.prototype.update = function(fnUpdate, fnCallback, changes, type) {
 			var changes = [];
 			operation.forEach(function(o) {
 
-				if (typeof(o.changes) !== 'undefined')
+				if (typeof(o.changes) !== UNDEFINED)
 					changes.push(o.changes);
 
 				if (o.callback)
@@ -820,7 +846,7 @@ Database.prototype.update = function(fnUpdate, fnCallback, changes, type) {
 			lines = [];
 		}
 
-		if (typeof(json) === 'string')
+		if (typeof(json) === STRING)
 			lines.push(json);
 	};
 
@@ -890,7 +916,7 @@ Database.prototype.update = function(fnUpdate, fnCallback, changes, type) {
 Database.prototype.prepare = function(fnUpdate, fnCallback, changes) {
 	var self = this;
 
-	if (typeof(fnUpdate) !== 'undefined')
+	if (typeof(fnUpdate) !== UNDEFINED)
 		self.pendingLock.push(updatePrepare(fnUpdate, fnCallback, changes, 'update'));
 
 	return self;
@@ -907,7 +933,7 @@ Database.prototype.remove = function(fnFilter, fnCallback, changes) {
 
 	var self = this;
 
-	if (typeof(fnFilter) === 'string')
+	if (typeof(fnFilter) === STRING)
 		fnFilter = filterPrepare(fnFilter);
 
 	var filter = function(item) {
@@ -1025,6 +1051,34 @@ Database.prototype.next = function() {
 	});
 };
 
+Database.prototype._metaSave = function() {
+	var self = this;
+	fs.writeFile(self.filenameMeta, JSON.stringify(self.meta), noop);
+	return self;
+};
+
+Database.prototype._metaLoad = function(callback) {
+
+	var self = this;
+
+	fs.readFile(self.filenameMeta, function(err, data) {
+
+		self.isReady = true;
+
+		if (err) {
+			if (callback)
+				callback(false, self.meta);
+			return;
+		}
+
+		self.meta = JSON.parse(data.toString('utf8'));
+		if (callback)
+			callback(true, self.meta);
+	});
+
+	return self;
+};
+
 // ========================================================================
 // VIEWS PROTOTYPE
 // ========================================================================
@@ -1042,29 +1096,29 @@ Views.prototype.all = function(name, fnCallback, itemSkip, itemTake, fnFilter) {
 	var self = this;
 	var view = self.views[name];
 
-	if (typeof(view) === 'undefined') {
+	if (typeof(view) === UNDEFINED) {
 		view = self.getView(name);
 		self.views[name] = view;
 	}
 
 	var type = typeof(itemSkip);
 
-	if (type === 'function' || type === 'string') {
+	if (type === FUNCTION || type === STRING) {
 		fnFilter = itemSkip;
 		itemSkip = 0;
 		itemTake = 0;
 	} else {
 		type = typeof(itemTake);
-		if (type === 'function' || type === 'string') {
+		if (type === FUNCTION || type === STRING) {
 			fnFilter = itemTake;
 			itemTake = 0;
 		}
 	}
 
-	if (typeof(fnFilter) === 'string')
+	if (typeof(fnFilter) === STRING)
 		fnFilter = filterPrepare(fnFilter);
 
-	if (typeof(fnFilter) !== 'function')
+	if (typeof(fnFilter) !== FUNCTION)
 		fnFilter = function(o) { return true; };
 
 	view.read(fnFilter, fnCallback, itemSkip, itemTake);
@@ -1084,15 +1138,15 @@ Views.prototype.top = function(name, top, fnCallback, fnFilter) {
 	var self = this;
 	var view = self.views[name];
 
-	if (typeof(view) === 'undefined') {
+	if (typeof(view) === UNDEFINED) {
 		view = self.getView(name);
 		self.views[name] = view;
 	}
 
-	if (typeof(fnFilter) === 'string')
+	if (typeof(fnFilter) === STRING)
 		fnFilter = filterPrepare(fnFilter);
 
-	if (typeof(fnFilter) !== 'function')
+	if (typeof(fnFilter) !== FUNCTION)
 		fnFilter = function(o) { return true; };
 
 	view.read(fnFilter, fnCallback, 0, top, true);
@@ -1111,20 +1165,20 @@ Views.prototype.one = function(name, fnFilter, fnCallback) {
 	var self = this;
 	var view = self.views[name];
 
-	if (typeof(view) === 'undefined') {
+	if (typeof(view) === UNDEFINED) {
 		view = self.getView(name);
 		self.views[name] = view;
 	}
 
-	if (typeof(fnCallback) === 'undefined') {
+	if (typeof(fnCallback) === UNDEFINED) {
 		fnCallback = fnFilter;
 		fnFilter = null;
 	}
 
-	if (typeof(fnFilter) === 'string')
+	if (typeof(fnFilter) === STRING)
 		fnFilter = filterPrepare(fnFilter);
 
-	if (typeof(fnFilter) !== 'function')
+	if (typeof(fnFilter) !== FUNCTION)
 		fnFilter = function(o) { return true; };
 
 	view.read(fnFilter, fnCallback, 0, 1, true);
@@ -1143,15 +1197,18 @@ Views.prototype.drop = function(name, fnCallback, changes) {
 	var self = this;
 	var view = self.views[name];
 
-	if (typeof(fnCallback) === 'string') {
+	if (typeof(fnCallback) === STRING) {
 		changes = fnCallback;
 		fnCallback = null;
 	}
 
-	if (typeof(view) === 'undefined') {
+	if (typeof(view) === UNDEFINED) {
 		view = self.getView(name);
 		self.views[name] = view;
 	}
+
+	delete self.db.meta.views[name];
+	self.db._metaSave();
 
 	self.db.emit('view/drop', true, name);
 
@@ -1191,41 +1248,34 @@ Views.prototype.drop = function(name, fnCallback, changes) {
 	return self.db;
 };
 
-/*
-	Create view
-	@name {String}
-	@fnFilter {Function} :: IMPORTANT: you must return {Boolean}
-	@fnSort {Function} :: ---> array.sort()
-	@fnCallback {Function} :: params: @count {Number}
-	@fnUpdate {Function} :: optional, IMPORTANT: you must return updated document
-	@changes {Function} :: optional, create description
-	return {Database}
-*/
-Views.prototype.create = function(name, fnFilter, fnSort, fnCallback, fnUpdate, changes) {
+Views.prototype.refresh = function(name, fnCallback) {
 
 	var self = this;
+	var schema = self.db.meta.views[name];
+
+	schema.isReady = false;
+
+	var fnSort = schema['sort'] || '';
+	var fnMap = schema['map'];
+
+	if (fnSort.length === 0)
+		fnSort = null;
+	else
+		fnSort = eval('(' + fnSort + ')');
+
+	fnMap = eval('(' + fnMap + ')');
+
 	var selected = [];
 	var count = 0;
 
-	if (typeof(fnCallback) === 'string') {
-		changes = fnCallback;
-		fnCallback = null;
-		fnUpdate = null;
-	} else if (typeof(fnUpdate) === 'string') {
-		changes = fnUpdate;
-		fnUpdate = null;
-	}
-
-	if (typeof(fnFilter) === 'string')
-		fnFilter = filterPrepare(fnFilter);
-
-	self.db.emit('view/create', true, name, 0);
-
 	var onCallback = function() {
-		selected.sort(fnSort);
+
+		if (fnSort)
+			selected.sort(fnSort);
+
 		var view = self.views[name];
 
-		if (typeof(view) === 'undefined') {
+		if (typeof(view) === UNDEFINED) {
 			view = self.getView(name);
 			self.views[name] = view;
 		}
@@ -1237,10 +1287,8 @@ Views.prototype.create = function(name, fnFilter, fnSort, fnCallback, fnUpdate, 
 			var fnAppend = function() {
 				appendFile(filename, selected, function() {
 
-					self.db.emit('view/create', false, name, count);
-
-					if (changes)
-						self.db.changelog.insert(changes);
+					self.db.emit('view/refresh', false, name, count);
+					schema.isReady = true;
 
 					if (fnCallback)
 						setImmediate(function() { fnCallback(count); });
@@ -1260,16 +1308,15 @@ Views.prototype.create = function(name, fnFilter, fnSort, fnCallback, fnUpdate, 
 
 				fs.unlink(filename, function(err) {
 
-					if (err) {
-						self.db.emit('error', err, 'view/create');
-
-						if (cb)
-							cb();
-
+					if (!err) {
+						fnAppend();
 						return;
 					}
 
-					fnAppend();
+					self.db.emit('error', err, 'view/refresh');
+
+					if (cb)
+						cb();
 				});
 			});
 
@@ -1278,20 +1325,54 @@ Views.prototype.create = function(name, fnFilter, fnSort, fnCallback, fnUpdate, 
 
 	var onItem = function(doc) {
 
-		if (!fnFilter(doc))
+		var item = fnMap(doc) || null;
+		if (item === null)
 			return;
 
-		if (fnUpdate)
-			doc = fnUpdate(doc) || null;
+		count++;
+		selected.push(item);
 
-		if (doc !== null) {
-			count++;
-			selected.push(doc);
-		}
 	};
 
 	self.db.each(onItem, onCallback);
-	return self.db;
+};
+
+/*
+	Create view
+	@name {String}
+	@fnFilter {Function} :: IMPORTANT: you must return {Boolean}
+	@fnSort {Function} :: ---> array.sort()
+	@fnCallback {Function} :: params: @count {Number}
+	@fnUpdate {Function} :: optional, IMPORTANT: you must return updated document
+	@changes {Function} :: optional, create description
+	return {Views}
+*/
+Views.prototype.create = function(name, fnMap, fnSort, fnCallback, changes) {
+
+	var self = this;
+
+	if (typeof(fnCallback) === STRING) {
+		changes = fnCallback;
+		fnCallback = null;
+	}
+
+	if (typeof(fnMap) === STRING)
+		fnMap = filterPrepare(fnMap);
+
+	self.db.meta.views[name] = {
+		map: fnMap.toString(),
+		sort: (fnSort || '').toString(),
+		isReady: false
+	};
+
+	self.db._metaSave();
+	self.db.emit('view/create', true, name, 0);
+
+	if (changes)
+		self.db.changelog.insert(changes);
+
+	self.refresh(name, fnCallback);
+	return self;
 };
 
 /*
@@ -1346,7 +1427,7 @@ View.prototype.read = function(fnFilter, fnCallback, itemSkip, itemTake, skipCou
 
 	self.status = STATUS_READING;
 
-	if (typeof(fnFilter) === 'string')
+	if (typeof(fnFilter) === STRING)
 		fnFilter = filterPrepare(fnFilter);
 
 	if (fnFilter === null)
@@ -1420,7 +1501,7 @@ View.prototype.operation = function(fnCallback) {
 
 	var self = this;
 
-	if (typeof(fnCallback) !== 'undefined')
+	if (typeof(fnCallback) !== UNDEFINED)
 		self.pendingOperation.push(fnCallback);
 
 	if (self.status !== STATUS_UNKNOWN)
@@ -1485,15 +1566,23 @@ View.prototype.next = function() {
 */
 Stored.prototype.create = function(name, fn, fnCallback, changes) {
 
-	if (typeof(fn) === 'function')
-		fn = fn.toString();
+	if (typeof(fnCallback) === STRING) {
+		var tmp = changes;
+		changes = fnCallback;
+		fnCallback = changes;
+	}
 
 	var self = this;
 
-	self._load(function() {
-		self.stored[name] = fn;
-		self._save(fnCallback, changes, name);
-	});
+	self.db.meta.stored[name] = fn.toString();
+	self.db._metaSave(fnCallback);
+
+	delete self.cache[name];
+
+	if (changes)
+		self.db.changelog.insert(changes);
+
+	self.db.emit('stored/create', name);
 
 	return self.db;
 };
@@ -1506,12 +1595,22 @@ Stored.prototype.create = function(name, fn, fnCallback, changes) {
 	return {Database}
 */
 Stored.prototype.remove = function(name, fnCallback, changes) {
+
 	var self = this;
 
-	self._load(function() {
-		delete self.stored[name];
-		self._save(fnCallback, changes, name);
-	});
+	if (typeof(fnCallback) === STRING) {
+		var tmp = changes;
+		changes = fnCallback;
+		fnCallback = changes;
+	}
+
+	if (changes)
+		self.db.changelog.insert(changes);
+
+	delete self.cache[name];
+	delete self.db.meta.stored[name];
+
+	self.db._metaSave(fnCallback);
 
 	return self.db;
 };
@@ -1525,98 +1624,21 @@ Stored.prototype.remove = function(name, fnCallback, changes) {
 Stored.prototype.clear = function(fnCallback, changes) {
 
 	var self = this;
-	var filename = self.filename;
 
-	fs.exists(filename, function(exists) {
-
-		if (changes)
-			self.db.changelog.insert(changes);
-
-		self.db.emit('stored/clear');
-
-		if (!exists) {
-
-			if (fnCallback)
-				fnCallback.call(self.db);
-
-			return;
-		}
-
-		fs.unlink(filename, function() {
-			if (fnCallback)
-				fnCallback.call(self.db);
-		});
-	});
-
-	return self.db;
-};
-
-Stored.prototype._save = function(fnCallback, changes, name) {
-	var self = this;
-	var filename = self.filename;
-
-	if (typeof(fnCallback) === 'string') {
+	if (typeof(fnCallback) === STRING) {
 		var tmp = changes;
 		changes = fnCallback;
-		fnCallback = tmp;
+		fnCallback = changes;
 	}
 
-	fs.writeFile(filename, JSON.stringify(self.stored), function(err) {
+	if (changes)
+		self.db.changelog.insert(changes);
 
-		if (err)
-			self.db.emit('error', err, 'stored/save', name);
+	self.cache = {};
+	self.db.meta.stored = {};
+	self.db._metaSave(fnCallback);
 
-		if (changes)
-			self.db.changelog.insert(changes);
-
-		self.db.emit('stored/save', name);
-
-		if (fnCallback)
-			fnCallback.call(self.db);
-
-	});
-
-	self.isReaded = false;
-};
-
-Stored.prototype._load = function(fnCallback) {
-	var self = this;
-	var filename = self.filename;
-
-	fs.exists(filename, function(exists) {
-
-		self.isReaded = true;
-		self.cache = {};
-
-		if (!exists)
-			return fnCallback({});
-
-		fs.readFile(filename, function(err, data) {
-
-			if (err) {
-				self.db.emit('error', err, 'stored/load');
-
-				if (fnCallback)
-					fnCallback.call(self.db);
-
-				return;
-			}
-
-			try
-			{
-				self.stored = JSON.parse(data);
-			} catch (ex) {
-				self.db.emit('error', ex, 'stored/load');
-			}
-
-			if (self.stored === null)
-				self.stored = {};
-
-			if (fnCallback)
-				fnCallback.call(self.db);
-
-		});
-	});
+	return self.db;
 };
 
 /*
@@ -1625,30 +1647,20 @@ Stored.prototype._load = function(fnCallback) {
 	@params {Object} :: params
 	@fnCallback {Function} :: optional
 	@changes {String} :: optional
-	return {Database}
+	return {Stored}
 */
 Stored.prototype.execute = function(name, params, fnCallback, changes) {
 
 	var self = this;
-
-	if (!self.isReaded) {
-
-		self._load(function() {
-			self.execute(name, params, fnCallback, changes);
-		});
-
-		return;
-	}
-
 	var type = typeof(params);
 
-	if (type === 'function') {
+	if (type === FUNCTION) {
 		changes = fnCallback;
 		fnCallback = params;
 		params = null;
 	}
 
-	if (typeof(fnCallback) === 'string') {
+	if (typeof(fnCallback) === STRING) {
 		var tmp = changes;
 		changes = fnCallback;
 		fnCallback = tmp;
@@ -1657,12 +1669,9 @@ Stored.prototype.execute = function(name, params, fnCallback, changes) {
 	if (changes)
 		self.db.changelog.insert(changes);
 
-	var fn = self.stored[name];
-	var cache = self.cache[name];
+	var fn = self.db.meta.stored[name];
 
-	self.db.emit('stored', name);
-
-	if (typeof(fn) === 'undefined') {
+	if (typeof(fn) === UNDEFINED) {
 
 		if (fnCallback)
 			fnCallback();
@@ -1670,17 +1679,28 @@ Stored.prototype.execute = function(name, params, fnCallback, changes) {
 		return;
 	}
 
-	if (typeof(cache) === 'undefined') {
+	var cache = self.cache[name];
+	self.db.emit('stored', name);
+
+	if (typeof(fn) === UNDEFINED) {
+
+		if (fnCallback)
+			fnCallback();
+
+		return;
+	}
+
+	if (typeof(cache) === UNDEFINED) {
 		fn = eval('(' + fn + ')');
 		self.cache[name] = fn;
 	} else
 		fn = cache;
 
-	if (typeof(fnCallback) === 'undefined')
+	if (typeof(fnCallback) === UNDEFINED)
 		fnCallback = function() {};
 
 	fn.call(self.db, self.db, fnCallback, params || null);
-	return self.db;
+	return self;
 };
 
 // ========================================================================
@@ -1698,17 +1718,26 @@ Stored.prototype.execute = function(name, params, fnCallback, changes) {
 */
 Binary.prototype.insert = function(name, type, buffer, fnCallback, changes) {
 
-	if (typeof(buffer) === 'string')
+	if (typeof(buffer) === STRING)
 		buffer = new Buffer(buffer, 'base64');
 
-	if (typeof(fnCallback) === 'string') {
+	if (typeof(fnCallback) === STRING) {
 		changes = fnCallback;
 		fnCallback = null;
 	}
 
 	var self = this;
 	var size = buffer.length;
-	var header = JSON.stringify({ name: name, size: size, type: type });
+	var dimension = { width: 0, heigth: 0 };
+
+	if (name.indexOf('.gif') !== -1)
+		dimension = dimensionGIF(buffer);
+	else if (name.indexOf('.png') !== -1)
+		dimension = dimensionPNG(buffer);
+	else if (name.indexOf('.jpg') !== -1)
+		dimension = dimensionJPG(buffer);
+
+	var header = JSON.stringify({ name: name, size: size, type: type, width: dimension.width, heigth: dimension.heigth });
 
 	size = (BINARY_HEADER_LENGTH - header.length) + 1;
 	header += new Array(size).join(' ');
@@ -1773,7 +1802,7 @@ Binary.prototype.remove = function(id, fnCallback, changes) {
 
 	var filename = path.join(self.directory, id + EXTENSION_BINARY);
 
-	if (typeof(fnCallback) === 'string') {
+	if (typeof(fnCallback) === STRING) {
 		changes = fnCallback;
 		fnCallback = null;
 	}
@@ -1816,7 +1845,7 @@ Changelog.prototype.insert = function(description) {
 	if (!self.db.changes)
 		return self.db;
 
-	if (typeof(description) === 'undefined')
+	if (typeof(description) === UNDEFINED)
 		return self.db;
 
 	if (!util.isArray(description))
@@ -2064,11 +2093,79 @@ function onBuffer(buffer, fnItem, fnBuffer) {
 */
 function updatePrepare(fnUpdate, fnCallback, changes, type) {
 
-	if (typeof(fnUpdate) === 'string')
+	if (typeof(fnUpdate) === STRING)
 		fnUpdate = filterPrepare(fnUpdate);
 
 	return { filter: fnUpdate, callback: fnCallback, count: 0, type: type, changes: changes };
 }
+
+// INTERNAL
+
+var sof = {
+	0xc0: true,
+	0xc1: true,
+	0xc2: true,
+	0xc3: true,
+	0xc5: true,
+	0xc6: true,
+	0xc7: true,
+	0xc9: true,
+	0xca: true,
+	0xcb: true,
+	0xcd: true,
+	0xce: true,
+	0xcf: true
+};
+
+function u16(buf, o) {
+	return buf[o] << 8 | buf[o + 1];
+}
+
+function u32(buf, o) {
+	return buf[o] << 24 | buf[o + 1] << 16 | buf[o + 2] << 8 | buf[o + 3];
+}
+
+function dimensionGIF(buffer) {
+	return { width: buffer[6], height: buffer[8] };
+};
+
+// MIT
+// Written by TJ Holowaychuk
+// visionmedia
+function dimensionJPG(buffer) {
+
+	var len = buffer.length;
+	var o = 0;
+
+	var jpeg = 0xff == buffer[0] && 0xd8 == buffer[1];
+
+	if (!jpeg)
+		return;
+
+	o += 2;
+
+	while (o < len) {
+		while (0xff != buffer[o]) o++;
+		while (0xff == buffer[o]) o++;
+
+		if (!sof[buffer[o]]) {
+		        o += u16(buffer, ++o);
+		        continue;
+		}
+
+		var w = u16(buffer, o + 6);
+		var h = u16(buffer, o + 4);
+
+		return { width: w, height: h };
+	}
+};
+
+// MIT
+// Written by TJ Holowaychuk
+// visionmedia
+function dimensionPNG(buffer) {
+	return { width: u32(buffer, 16), height: u32(buffer, 16 + 4) };
+};
 
 exports.database = Database;
 exports.load = exports.open = exports.nosql = exports.init = function(filename, directory, changes) {

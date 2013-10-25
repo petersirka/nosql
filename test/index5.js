@@ -1,4 +1,4 @@
-var filename = '/users/petersirka/desktop/aaa.nosql';
+var filename = '/users/petersirka/desktop/test/aaa.nosql';
 var nosql = require('../index');
 var db = nosql.load(filename);
 
@@ -17,6 +17,25 @@ db.stored.create('rename', function(nosql, next, params) {
 
 //db.stored.clear();
 
+/*
 db.stored.execute('rename', { str: 'TEST' }, function(a) {
 	console.log(a);
 });
+*/
+/*
+db.views.create('test', function(doc) {
+	return doc.firstname;
+});
+
+db.stored.create('OK', function(nosql, next, params) {
+	console.log('OK');
+	next();
+});
+*/
+
+setTimeout(function() {
+
+	//db.insert({ firstname: 'Peter', lastname: 'Širka', age: 30 });
+	//db.stored.execute('OK');
+
+}, 100);
