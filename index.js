@@ -19,39 +19,32 @@
 // OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE
 // USE OR OTHER DEALINGS IN THE SOFTWARE.
 
-'use strict';
-
 var fs = require('fs');
 var path = require('path');
-var util = require('util');
 var events = require('events');
-var encoding = 'utf8';
 
-var STATUS_UNKNOWN = 0;
-var STATUS_READING = 1;
-var STATUS_WRITING = 2;
-var STATUS_LOCKING = 3;
-var STATUS_PENDING = 4;
-var NEWLINE = '\n';
-
-var VERSION = 'v2.0.0';
-var EXTENSION = '.nosql';
-var EXTENSION_VIEW = '.nosql';
-var EXTENSION_BINARY = '.nosql-binary';
-var EXTENSION_TMP = '.nosql-tmp';
-var EXTENSION_CHANGES = '.changes';
-var EXTENSION_STORED = '.nosql-stored';
-var EXTENSION_META = '.meta';
-
-var MAX_WRITESTREAM = 2;
-var MAX_READSTREAM = 4;
-var MAX_BUFFER_SIZE = 1024 * 4;
-var BINARY_HEADER_LENGTH = 2000;
-
-var STRING = 'string';
-var FUNCTION = 'function';
-var UNDEFINED = 'undefined';
-var BOOLEAN = 'boolean';
+const VERSION = 'v2.0.0';
+const STATUS_UNKNOWN = 0;
+const STATUS_READING = 1;
+const STATUS_WRITING = 2;
+const STATUS_LOCKING = 3;
+const STATUS_PENDING = 4;
+const EXTENSION = '.nosql';
+const EXTENSION_VIEW = '.nosql';
+const EXTENSION_BINARY = '.nosql-binary';
+const EXTENSION_TMP = '.nosql-tmp';
+const EXTENSION_CHANGES = '.changes';
+const EXTENSION_STORED = '.nosql-stored';
+const EXTENSION_META = '.meta';
+const MAX_WRITESTREAM = 2;
+const MAX_READSTREAM = 4;
+const MAX_BUFFER_SIZE = 1024 * 4;
+const BINARY_HEADER_LENGTH = 2000;
+const NEWLINE = '\n';
+const STRING = 'string';
+const FUNCTION = 'function';
+const UNDEFINED = 'undefined';
+const BOOLEAN = 'boolean';
 
 if (typeof(setImmediate) === UNDEFINED) {
 	global.setImmediate = function(cb) {
@@ -210,14 +203,15 @@ Database.prototype.insert = function(arr, fnCallback, changes) {
 		fnCallback = null;
 	}
 
-	if (!util.isArray(arr))
+	if (!(arr instanceof Array))
 		arr = [arr];
+
+	var length = arr.length;
 
 	if (self.status === STATUS_LOCKING|| self.status === STATUS_PENDING || self.countWrite >= MAX_WRITESTREAM) {
 
-		arr.forEach(function(o) {
-			self.pendingWrite.push({ json: o, changes: changes });
-		});
+		for (var i = 0; i < length; i++)
+			self.pendingWrite.push({ json: arr[i], changes: changes });
 
 		if (fnCallback)
 			fnCallback(-1);
@@ -228,7 +222,9 @@ Database.prototype.insert = function(arr, fnCallback, changes) {
 	var builder = [];
 	var builderChanges = [];
 
-	arr.forEach(function(doc) {
+	for (var i = 0; i < length; i++) {
+
+		var doc = arr[i];
 
 		if (typeof(doc.json) === UNDEFINED) {
 			builder.push(doc);
@@ -236,14 +232,14 @@ Database.prototype.insert = function(arr, fnCallback, changes) {
 			if (changes)
 				builderChanges.push(changes);
 
-			return;
+			continue;
 		}
 
 		builder.push(doc.json);
 
 		if (doc.changes)
 			builderChanges.push(doc.changes);
-	});
+	}
 
 	if (builder.length === 0) {
 		self.next();
@@ -444,9 +440,10 @@ Database.prototype.each = function(fnDocument, fnCallback) {
 	if (fnDocument)
 		operation.push({ item: fnDocument, callback: fnCallback });
 
-	self.pendingEach.forEach(function(fn) {
-		operation.push(fn);
-	});
+	var length = self.pendingEach.length;
+
+	for (var i = 0; i < length; i++)
+		operation.push(self.pendingEach[i]);
 
 	if (operation.length === 0) {
 		self.next();
@@ -477,16 +474,15 @@ Database.prototype.each = function(fnDocument, fnCallback) {
 			return;
 		}
 
-		operation.forEach(function(fn) {
+		var length = operation.length;
+		for (var i = 0; i < length; i++) {
 			try
 			{
-
-				fn.item(doc, count, 'each-buffer');
-
+				operation[i].item(doc, count, 'each-buffer');
 			} catch (e) {
 				self.emit('error', e);
 			}
-		});
+		}
 
 		count++;
 	};
@@ -504,10 +500,12 @@ Database.prototype.each = function(fnDocument, fnCallback) {
 
 		setImmediate(function() {
 			self.emit('each', false, count);
-			operation.forEach(function(fn) {
+			var length = operation.length;
+			for (var i = 0; i < length; i++) {
+				var fn = operation[i];
 				if (fn.callback)
 					fn.callback();
-			});
+			}
 		});
 
 	});
@@ -592,11 +590,13 @@ Database.prototype.clear = function(fnCallback, changes) {
 	self.status = STATUS_LOCKING;
 
 	var operation = [];
+	var length = self.pendingClear.length;
 
-	self.pendingClear.forEach(function(o) {
-		if (o !== null)
-			operation.push(o);
-	});
+	for (var i = 0; i < length; i++) {
+		var fn = self.pendingClear[i];
+		if (fn !== null)
+			operation.push(fn);
+	}
 
 	self.emit('clear', true, false);
 	self.pendingClear = [];
@@ -609,10 +609,14 @@ Database.prototype.clear = function(fnCallback, changes) {
 
 			setImmediate(function() {
 				self.emit('clear', false, true);
-				operation.forEach(function(fn) {
+
+				var length = operation.length;
+				for (var i = 0; i < length; i++) {
+					var fn = operation[i];
 					if (fn)
 						fn();
-				});
+				}
+
 			});
 
 			return;
@@ -627,10 +631,13 @@ Database.prototype.clear = function(fnCallback, changes) {
 
 			setImmediate(function() {
 				self.emit('clear', false, err === null);
-				operation.forEach(function(fn) {
+
+				var length = operation.length;
+				for (var i = 0; i < length; i++) {
+					var fn = operation[i];
 					if (fn)
-						fn(err === null);
-				});
+						fn();
+				}
 			});
 		});
 	});
@@ -796,6 +803,7 @@ Database.prototype.update = function(fnUpdate, fnCallback, changes, type) {
 
 	// rename updated file
 	var fnRename = function() {
+
 		operation.forEach(function(o) {
 
 			if (o.type === 'update') {
@@ -1072,6 +1080,13 @@ Database.prototype._metaLoad = function(callback) {
 		}
 
 		self.meta = JSON.parse(data.toString('utf8'));
+
+		var keys = Object.keys(self.meta.views);
+		var length = keys.length;
+
+		for (var i = 0; i < length; i++)
+			self.meta.views[keys[i]].isReady = true;
+
 		if (callback)
 			callback(true, self.meta);
 	});
@@ -1408,7 +1423,7 @@ Views.prototype.getFileName = function(name) {
 	@skipCount {Boolean} :: optional, default false
 	return {View}
 */
-View.prototype.read = function(fnFilter, fnCallback, itemSkip, itemTake, skipCount) {
+View.prototype.read = function(fnFilter, fnCallback, itemSkip, itemTake, skipCount, isScalar) {
 
 	var self = this;
 	var skip = itemSkip || 0;
@@ -1728,7 +1743,7 @@ Binary.prototype.insert = function(name, type, buffer, fnCallback, changes) {
 
 	var self = this;
 	var size = buffer.length;
-	var dimension = { width: 0, heigth: 0 };
+	var dimension = { width: 0, height: 0 };
 
 	if (name.indexOf('.gif') !== -1)
 		dimension = dimensionGIF(buffer);
@@ -1737,7 +1752,7 @@ Binary.prototype.insert = function(name, type, buffer, fnCallback, changes) {
 	else if (name.indexOf('.jpg') !== -1)
 		dimension = dimensionJPG(buffer);
 
-	var header = JSON.stringify({ name: name, size: size, type: type, width: dimension.width, heigth: dimension.heigth });
+	var header = JSON.stringify({ name: name, size: size, type: type, width: dimension.width, height: dimension.height });
 
 	size = (BINARY_HEADER_LENGTH - header.length) + 1;
 	header += new Array(size).join(' ');
@@ -1848,7 +1863,7 @@ Changelog.prototype.insert = function(description) {
 	if (typeof(description) === UNDEFINED)
 		return self.db;
 
-	if (!util.isArray(description))
+	if (!(description instanceof Array))
 		description = [description || ''];
 
 	if (description.length === 0)

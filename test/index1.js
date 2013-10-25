@@ -1,5 +1,5 @@
 var fs = require('fs');
-var filename = '/users/petersirka/desktop/aaa';
+var filename = '/users/petersirka/desktop/test/aaa';
 var nosql = require('../index');
 var db = nosql.load(filename);
 var assert = require('assert');
@@ -148,10 +148,10 @@ setTimeout(function() {
 	db.changelog.read(function(lines) {
 		console.log(lines);
 	});
-
+/*
 	db.clear(function() {
 		console.log('clear');
 		db.insert({r: true});
 	}, 'clear');
-
+*/
 }, 7000);
