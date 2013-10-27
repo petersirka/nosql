@@ -138,6 +138,9 @@ if (remove) {
 		db.remove('doc.index > 105', function() {
 			console.log('remove');
 		}, 'remove doc.index > 105');
+
+		console.log(db.created);
+		console.log(db.updated);
 	}, 4000);
 }
 

@@ -3,9 +3,13 @@
 node.js NoSQL embedded database
 ===============================
 
-* __NEW:__ Supports stored functions
-* __NEW:__ Supports changelog (insert, update, remove, drop, create)
-* __NEW:__ Supports Binary files (insert, read, remove)
+* __NEW:__ auto-refreshing views
+* __NEW:__ binary files support informations about size of image
+* __NEW:__ supports DB custom params
+* __NEW:__ supports DB description
+* Supports stored functions
+* Supports changelog (insert, update, remove, drop, create)
+* Supports Binary files (insert, read, remove)
 * Written in JavaScript
 * Small and effective embedded database
 * Implements small concurrency model
@@ -32,7 +36,32 @@ $ sudo npm install -g nosql
 $ npm install nosql
 ```
 
-## NEW: STORED FUNCTIONS
+## ADDITIONAL TOOLS
+
+```js
+var nosql = require('nosql').load('/users/petersirka/desktop/database.nosql');
+
+// --- WRITE
+
+nosql.description('My users database.');
+nosql.custom({ key: '3493893' });
+
+// --- READ
+
+var description = nosql.description();
+var custom = nosql.custom();
+
+console.log(description);
+console.log(custom.key);
+
+// --- OTHER
+
+// Database date created
+nosql.created;
+
+```
+
+## STORED FUNCTIONS
 
 > version +1.0.3-0
 
@@ -75,7 +104,7 @@ nosql.stored.execute('counter', { increment: 1 });
 
 ```
 
-## NEW: CHANGELOG
+## CHANGELOG
 
 ```js
 var nosql = require('nosql').load('/users/petersirka/desktop/database.nosql');
@@ -189,19 +218,15 @@ var callback = function(selected) {
 	console.log('Users between 25 and 35 years old: ' + users.join(', '));
 });
 
-var filter = function(doc) {
-	return doc.age > 24 && doc.age < 36;
+var map = function(doc) {
+	if (doc.age > 24 && doc.age < 36)
+		return doc;
 };
 
-nosql.all(filter, callback);
-nosql.one(filter, function(doc) {});
-nosql.top(5, filter, callback);
+nosql.all(map, callback);
+nosql.one(map, function(doc) {});
+nosql.top(5, map, callback);
 nosql.each(function(doc, offset) {});
-
-// FILTER can be a string
-// eval is bad, but sometimes is very helpful
-// ============================================================================
-nosql.all('doc.age > 24 && doc.age < 36');
 
 // REMOVE DOCUMENTS
 // nosql.remove(fnFilter, [fnCallback], [changes]);
@@ -225,8 +250,9 @@ nosql.remove(filter, callback);
 // nosql.view.drop(name, [fnCallback], [changes]);
 // ============================================================================
 
-var filter = function(doc) {
-	return doc.age > 20 && doc.age < 30;
+var map = function(doc) {
+	if (doc.age > 20 && doc.age < 30)
+		return doc;
 };
 
 var sort = function(a, b) {
@@ -240,7 +266,7 @@ nosql.view.all('young', function(documents, count) {
 	// documents === empty
 }, 0, 10);
 
-nosql.view.create('young', filter, sort, function(count) {	
+nosql.view.create('young', map, sort, function(count) {	
 	
 	// view was created (database create new view file database#young.db with filtered and sorted documents)
 
@@ -253,7 +279,12 @@ nosql.view.create('young', filter, sort, function(count) {
 		console.log(documents);
 	});
 
-	nosql.view.one('young', 'doc.age === 25', function(document) {
+	nosql.view.one('young', function(doc) {
+		
+		if (doc.age === 24)
+			return doc;
+
+	}, function(document) {
 		console.log(document);
 	});
 
@@ -282,9 +313,11 @@ nosql.binary.read('database#1365699379204dab2csor', function(err, stream, header
 	if (err)
 		return;
 
-	// header.name; - file name
-	// header.size; - file size
-	// header.type; - content type
+	// header.name;   - file name
+	// header.size;   - file size
+	// header.type;   - content type
+	// header.width;  - image width
+	// header.height; - image height
 
 	stream.pipe(fs.createWriteStream('/users/petersirka/dekstop/picture-database.jpg'));
 	
@@ -398,7 +431,9 @@ function sumarize() {
 // How to get documents count?
 // ============================================================================
 
-nosql.count('user.age > 10 && user.age < 30', function(count) {
+nosql.count(function(user) {
+	return user.age > 10 && user.age < 30;
+}, function(count) {
 	console.log('Count of users between 10 and 30 years old:', count);
 });
 
@@ -434,14 +469,20 @@ nosql.view.all('users', function(users, count) {
 
 // Without view:
 
-nosql.all('user.age > 10 && user.age < 30', function(users) {	
+nosql.all(function(user) { 
+	if (user.age > 10 && user.age < 30)
+		return user;
+}, function(users) {	
 	console.log(users);
 }, userSkip, userTake);
 
 // Without view (sorted):
 // SLOWLY AND RAM KILLER
 
-nosql.sort('user.age > 10 && user.age < 30', function(a, b) {
+nosql.sort(function(user) {
+	if (user.age > 10 && user.age < 30)
+		return user;
+}, function(a, b) {
 	if (a.age < b.age)
 		return -1;
 	return 1;

@@ -21,6 +21,7 @@
 
 var fs = require('fs');
 var path = require('path');
+var util = require('util');
 var events = require('events');
 
 const VERSION = 'v2.0.0';
@@ -99,7 +100,10 @@ function Database(filename, directory, changes) {
 	this.meta = {
 		version: VERSION,
 		views: {},
-		stored: {}
+		stored: {},
+		description: '',
+		created: new Date(),
+		custom: null
 	};
 
 	this.binary = (directory || '').length === 0 ? null : new Binary(this, directory);
@@ -185,7 +189,23 @@ function FileReader(db) {
 	PROTOTYPES
 */
 
-Database.prototype = new events.EventEmitter();
+Database.prototype = {
+
+	get created() {
+
+		var dt = this.meta.created;
+		if (util.isDate(dt))
+			return dt;
+
+		if (dt === null || typeof(dt) === UNDEFINED)
+			return null;
+
+		return new Date(Date.parse(dt.toString()));
+	}
+
+}
+
+Database.prototype.__proto__ = new events.EventEmitter();
 
 /*
 	Insert data into database
@@ -1064,8 +1084,34 @@ Database.prototype.next = function() {
 	});
 };
 
+Database.prototype.description = function(value) {
+	var self = this;
+
+	if (typeof(value) === UNDEFINED)
+		return self.meta.description;
+
+	self.meta.description = (value || '').toString();
+	self.meta._metaSave();
+	return self;
+};
+
+Database.prototype.custom = function(value) {
+	var self = this;
+
+	if (typeof(value) === UNDEFINED)
+		return self.meta.custom;
+
+	self.meta.custom = value;
+	self.meta._metaSave();
+	return self;
+};
+
 Database.prototype._metaSave = function() {
 	var self = this;
+
+	if (typeof(self.meta.created) === UNDEFINED)
+		self.meta.created = new Date();
+
 	fs.writeFile(self.filenameMeta, JSON.stringify(self.meta), noop);
 	return self;
 };
