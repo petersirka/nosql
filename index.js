@@ -1334,6 +1334,8 @@ Views.prototype.refresh = function(name, fnCallback) {
 	var selected = [];
 	var count = 0;
 
+	self.db.emit('view/refresh', true, name, '');
+
 	var onCallback = function() {
 
 		if (fnSort)

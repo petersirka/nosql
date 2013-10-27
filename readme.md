@@ -196,13 +196,13 @@ nosql.prepare(function(doc) {
 nosql.update();
 
 // READ DOCUMENTS
-// nosql.all(fnFilter, fnCallback, [itemSkip], [itemTake]);
-// nosql.one(fnFilter, fnCallback);
-// nosql.top(max, fnFilter, fnCallback);
+// nosql.all(fnMap, fnCallback, [itemSkip], [itemTake]);
+// nosql.one(fnMap, fnCallback);
+// nosql.top(max, fnMap, fnCallback);
 // nosql.each(fnCallback);
 // ----------------------------------------------------------------------------
 // IMPORTANT: SLOWLY AND RAM KILLER, USE VIEWS
-// nosql.sort(fnFilter, fnSort, fnCallback, [itemSkip], [itemTake]);
+// nosql.sort(fnMap, fnSort, fnCallback, [itemSkip], [itemTake]);
 // ============================================================================
 
 var callback = function(selected) {
@@ -243,10 +243,10 @@ var filter = function(doc) {
 nosql.remove(filter, callback);
 
 // VIEWS
-// nosql.view.all(name, fnCallback, [itemSkip], [itemTake], [fnFilter]);
-// nosql.view.one(name, [fnFilter], fnCallback);
-// nosql.view.top(name, top, fnCallback, [fnFilter]);
-// nosql.view.create(name, fnFilter, fnSort, [fnCallback], [fnUpdate], [changes]);
+// nosql.view.all(name, fnCallback, [itemSkip], [itemTake], [fnMap]);
+// nosql.view.one(name, [fnMap], fnCallback);
+// nosql.view.top(name, top, fnCallback, [fnMap]);
+// nosql.view.create(name, fnMap, fnSort, [fnCallback], [fnUpdate], [changes]);
 // nosql.view.drop(name, [fnCallback], [changes]);
 // ============================================================================
 
@@ -358,6 +358,7 @@ nosql.on('each', function(begin, count) {});
 nosql.on('view', function(begin, name, count) {});
 nosql.on('view/create', function(begin, name, count) {});
 nosql.on('view/drop', function(begin, name) {});
+nosql.on('view/refresh', function(begin, name, count) {});
 nosql.on('clear', function(begin, success) {});
 nosql.on('drop', function(begin, success) {});
 nosql.on('complete', function(old_status) {});
