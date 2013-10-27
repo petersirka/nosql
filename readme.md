@@ -12,7 +12,7 @@ node.js NoSQL embedded database
 * Supports Binary files (insert, read, remove)
 * Written in JavaScript
 * Small and effective embedded database
-* Implements small concurrency model
+* Implements a small concurrency model
 * Data are saved to one file as text file
 * Easy editing in e.g. notepad
 * Quick, simple, effective
