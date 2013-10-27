@@ -3,7 +3,7 @@
 node.js NoSQL embedded database
 ===============================
 
-* __NEW:__ auto-refreshing views
+* __NEW:__ auto-refreshing of views
 * __NEW:__ binary files support informations about size of image
 * __NEW:__ supports DB custom params
 * __NEW:__ supports DB description
