@@ -1866,7 +1866,6 @@ Binary.prototype.update = function(id, name, type, buffer, fnCallback, changes) 
 	size = (BINARY_HEADER_LENGTH - header.length) + 1;
 	header += new Array(size).join(' ');
 
-	id = self.db.name + '#' + id;
 	var stream = fs.createWriteStream(path.join(self.directory, id + EXTENSION_BINARY));
 
 	stream.write(header);
