@@ -1831,6 +1831,58 @@ Binary.prototype.insert = function(name, type, buffer, fnCallback, changes) {
 };
 
 /*
+	Update binary file
+	@id {String}
+	@name {String} :: filename without path
+	@type {String} :: content type
+	@buffer {Buffer} :: binary data or base64
+	@fnCallback {Function} :: optional, params: @id {String}, @header {Object}
+	@changes {String} :: optional, insert description
+	return {String} :: return ID - identificator
+*/
+Binary.prototype.update = function(id, name, type, buffer, fnCallback, changes) {
+
+	if (typeof(buffer) === STRING)
+		buffer = new Buffer(buffer, 'base64');
+
+	if (typeof(fnCallback) === STRING) {
+		changes = fnCallback;
+		fnCallback = null;
+	}
+
+	var self = this;
+	var size = buffer.length;
+	var dimension = { width: 0, height: 0 };
+
+	if (name.indexOf('.gif') !== -1)
+		dimension = dimensionGIF(buffer);
+	else if (name.indexOf('.png') !== -1)
+		dimension = dimensionPNG(buffer);
+	else if (name.indexOf('.jpg') !== -1)
+		dimension = dimensionJPG(buffer);
+
+	var header = JSON.stringify({ name: name, size: size, type: type, width: dimension.width, height: dimension.height });
+
+	size = (BINARY_HEADER_LENGTH - header.length) + 1;
+	header += new Array(size).join(' ');
+
+	id = self.db.name + '#' + id;
+	var stream = fs.createWriteStream(path.join(self.directory, id + EXTENSION_BINARY));
+
+	stream.write(header);
+	stream.end(buffer);
+	stream = null;
+
+	if (changes)
+		self.db.changelog.insert(changes);
+
+	if (fnCallback)
+		fnCallback(id, header);
+
+	return id;
+};
+
+/*
 	Read binary file
 	@id {String} :: identificator
 	@callback {Function} :: params: @err {Error}, @readStream {Stream}, @header {Object} / header.name {String}, header.size {Number}, header.type {String}

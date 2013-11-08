@@ -292,6 +292,7 @@ nosql.view.create('young', map, sort, function(count) {
 
 // BINARY FILES
 // nosql.binary.insert(name, contentType, buffer/base64, [callback], [chnages]); - return file ID
+// nosql.binary.update(id, name, contentType, buffer/base64, [callback], [changes]); - return file ID
 // nosql.binary.read(id, fnCallback);
 // nosql.binary.remove(id, [fnCallback], [changes]);
 // ============================================================================
