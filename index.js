@@ -24,7 +24,7 @@ var path = require('path');
 var util = require('util');
 var events = require('events');
 
-const VERSION = 'v2.0.0';
+const VERSION = 'v2.0.1';
 const STATUS_UNKNOWN = 0;
 const STATUS_READING = 1;
 const STATUS_WRITING = 2;
