@@ -20,7 +20,7 @@ var EXTENSION_STORED = '.nosql-stored';
 var EXTENSION_META = '.meta';
 var MAX_WRITESTREAM = 2;
 var MAX_READSTREAM = 4;
-var MAX_BUFFER_SIZE = 1024 * 4;
+var MAX_BUFFER_SIZE = 1024 * 40;
 var BINARY_HEADER_LENGTH = 2000;
 var NEWLINE = '\n';
 var STRING = 'string';
@@ -2100,7 +2100,6 @@ FileReader.prototype.open = function(filename, size, fnBuffer, fnCallback) {
 
 FileReader.prototype.read = function(fd, position, size, fnBuffer, next) {
     var buffer = new Buffer(size);
-
     fs.read(fd, buffer, 0, size, position, function(err, num) {
 
 		var cancel = num !== size;
@@ -2118,7 +2117,10 @@ FileReader.prototype.read = function(fd, position, size, fnBuffer, next) {
 			cancel = true;
 		}
 
-		next(cancel, position, size);
+	    setImmediate(function() {
+			next(cancel, position, size);
+		});
+
     });
 };
 
