@@ -32,10 +32,6 @@ db.stored.create('OK', function(nosql, next, params) {
 	next();
 });
 */
-
-setTimeout(function() {
-
-	//db.insert({ firstname: 'Peter', lastname: 'Širka', age: 30 });
-	//db.stored.execute('OK');
-
-}, 100);
+db.on('ready', function() {
+	console.log('OK');
+});

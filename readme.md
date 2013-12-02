@@ -20,7 +20,6 @@ node.js NoSQL embedded database
 * Asynchronous insert, read, update, remove, drop, count, clear
 * Supports Views
 * __No dependencies__
-* [Documentation](http://www.partialjs.com/documentation/nosql/)
 * [News on Twitter - @partialjs](https://twitter.com/partialjs)
 * [E-shop via NoSQL embedded database](http://eshop.partialjs.com)
 * [Blog via NoSQL embedded database](http://blog.partialjs.com/)
@@ -348,6 +347,7 @@ nosql.resume();
 // EVENTS
 // ============================================================================
 
+_NEW_ nosql.on('load', function() {});
 nosql.on('error', function(err, source) {});
 nosql.on('pause/resume', function(pause) {});
 nosql.on('insert', function(begin, count) {});
