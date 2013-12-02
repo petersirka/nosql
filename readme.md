@@ -347,7 +347,7 @@ nosql.resume();
 // EVENTS
 // ============================================================================
 
-_NEW_ nosql.on('load', function() {});
+nosql.on('load', function() {});
 nosql.on('error', function(err, source) {});
 nosql.on('pause/resume', function(pause) {});
 nosql.on('insert', function(begin, count) {});
