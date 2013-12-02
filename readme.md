@@ -58,6 +58,14 @@ console.log(custom.key);
 // Database date created
 nosql.created;
 
+if (!nosql.isReady) {
+    // YOU MUST WAIT :-)
+}
+
+nosql.on('load', function() {
+   // I'm ready
+});
+
 ```
 
 ## STORED FUNCTIONS
