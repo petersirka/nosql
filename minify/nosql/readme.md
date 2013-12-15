@@ -58,6 +58,14 @@ console.log(custom.key);
 // Database date created
 nosql.created;
 
+if (!nosql.isReady) {
+    // YOU MUST WAIT :-)
+}
+
+nosql.on('load', function() {
+   // I'm ready
+});
+
 ```
 
 ## STORED FUNCTIONS
@@ -347,7 +355,7 @@ nosql.resume();
 // EVENTS
 // ============================================================================
 
-_NEW_ nosql.on('load', function() {});
+nosql.on('load', function() {});
 nosql.on('error', function(err, source) {});
 nosql.on('pause/resume', function(pause) {});
 nosql.on('insert', function(begin, count) {});
