@@ -311,12 +311,12 @@ fs.readFile('/users/petersirka/desktop/picture.jpg', function(err, data) {
 
 	console.log(id);
 
-	// result: database#1365699379204dab2csor
+	// result: 1365699379204dab2csor
 	// nosql.binary.read(id, .......);
 
 });
 
-nosql.binary.read('database#1365699379204dab2csor', function(err, stream, header) {
+nosql.binary.read('1365699379204dab2csor', function(err, stream, header) {
 	
 	if (err)
 		return;
@@ -334,7 +334,7 @@ nosql.binary.read('database#1365699379204dab2csor', function(err, stream, header
 	stream.pipe(httpResponse);
 });
 
-nosql.binary.remove('database#1365699379204dab2csor', function(isRemoved) {
+nosql.binary.remove('1365699379204dab2csor', function(isRemoved) {
 	console.log(isRemoved === true);
 });
 

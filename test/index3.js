@@ -5,7 +5,7 @@ var nosql = require('../index');
 var db = nosql.load(filename, directory, true);
 var assert = require('assert');
 
-fs.readFile('/users/petersirka/desktop/logo.jpg', function(err, data) {
-	//console.log(db.binary.insert('logo.jpg', 'image/jpg', data, 'IMPORT LOGO'));
-	console.log(db.binary.update('aaa#1383983838218nhxjq0k9', '1395253_4947897474548_1323418430_n.jpg', 'image/jpg', data, 'IMPORT LOGO'));
+fs.readFile('/users/petersirka/desktop/4dc8ba185cf9b8cc332bb7318be73fc5.jpeg', function(err, data) {
+	//console.log(db.binary.insert('4dc8ba185cf9b8cc332bb7318be73fc5.jpeg', 'image/jpg', data, 'IMPORT PHOTO'));
+	//console.log(db.binary.update('1383983838218nhxjq0k9', 'levik-anna-maria.jpg', 'image/jpg', data, 'IMPORT PHOTO'));
 });
