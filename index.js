@@ -5,7 +5,7 @@ var path = require('path');
 var util = require('util');
 var events = require('events');
 
-var VERSION = 'v2.0.5';
+var VERSION = 'v2.0.6';
 var STATUS_UNKNOWN = 0;
 var STATUS_READING = 1;
 var STATUS_WRITING = 2;
