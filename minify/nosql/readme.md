@@ -24,10 +24,8 @@ node.js NoSQL embedded database
 * Asynchronous insert, read, update, remove, drop, count, clear
 * Supports Views
 * __No dependencies__
-* [News on Twitter - @partialjs](https://twitter.com/partialjs)
-* [E-shop via NoSQL embedded database](http://eshop.partialjs.com)
-* [Blog via NoSQL embedded database](http://blog.partialjs.com/)
-* Implemented in [partial.js / web application framework](http://www.partialjs.com)
+* [News on Twitter - @totalframework](https://twitter.com/totalframework)
+* Implemented in [total.js / web application framework](http://www.totaljs.com)
 
 ## Installation
 
@@ -519,8 +517,4 @@ THE SOFTWARE IS PROVIDED 'AS IS', WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLI
 
 ## Recommend
 
-[partial.js web application framework](https://github.com/petersirka/partial.js)
-
-## Contact
-
-[www.petersirka.sk](http://www.petersirka.sk)
+[total.js web application framework](https://github.com/totaljs/framework)
