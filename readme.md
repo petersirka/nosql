@@ -3,8 +3,6 @@
 node.js NoSQL embedded database
 ===============================
 
-[![Bitdeli Badge](https://d2weczhvl823v0.cloudfront.net/petersirka/nosql/trend.png)](https://bitdeli.com/free "Bitdeli Badge")
-
 > __IMPORTANT__: new version hasn't back compatilibity with binary files.
 
 * __NEW:__ auto-refreshing of views
