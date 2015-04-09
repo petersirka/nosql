@@ -61,10 +61,10 @@ if (write) {
 if (read) {
 	setTimeout(function() {
 
-		db.read('doc.index > 0 && doc.index < 5', function(selected) {
-			
+		db.read('doc.index > 0 && doc.index < 5', function(e, selected) {
+
 			var str = '';
-			
+
 			selected.sort(function(a,b) {
 				if (a.index < b.index)
 					return -1;
@@ -78,10 +78,10 @@ if (read) {
 			console.log('--' + str);
 			assert.ok(str === '234', 'read');
 
-			console.log(selected);			
+			console.log(selected);
 		}, 1, 3);
 
-		db.read('doc.index > 100 && doc.index < 105', function(selected) {
+		db.read('doc.index > 100 && doc.index < 105', function(e, selected) {
 			console.log(selected);
 		}, 1, 3);
 
@@ -94,23 +94,23 @@ if (read) {
 }
 
 
-db.one('doc.index === 89080', function(doc) {
+db.one('doc.index === 89080', function(e, doc) {
 	console.log(doc);
 });
 
 setTimeout(function() {
-	db.top(5, 'doc.index < 15', function(selected) {
+	db.top(5, 'doc.index < 15', function(e, selected) {
 		console.log('TOP', selected);
 	});
 }, 500);
 
 setTimeout(function() {
-	
+
 	db.update(function(o) {
-		
+
 		if (o.index > 10 && o.index < 20)
 			o.index = 10000;
-		
+
 		return o;
 	}, function() {
 		console.log('UPDATED');
@@ -127,7 +127,7 @@ setTimeout(function() {
 */
 
 setTimeout(function() {
-	db.count(null, function(count) {
+	db.count(null, function(e, count) {
 		console.log('count');
 	});
 }, 2000);

@@ -1,8 +1,8 @@
 /**
  * @module NoSQL Embedded Database
  * @author Peter Širka <petersirka@gmail.com>
- * @copyright Peter Širka 2012-2014
- * @version 2.0.9
+ * @copyright Peter Širka 2012-2015
+ * @version 3.0.0
  */
 
 'use strict';
@@ -400,7 +400,7 @@ Database.prototype.all = function(fnMap, fnCallback, itemSkip, itemTake) {
 Database.prototype.one = function(fnMap, fnCallback) {
 
     var cb = function(selected) {
-        fnCallback(selected[0] || null);
+        fnCallback(null, selected ? selected[0] || null : null);
     };
 
     return this.read(fnMap, cb, 0, 1, false, 'one');
