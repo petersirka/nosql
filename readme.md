@@ -1,4 +1,4 @@
-[![NoSQL embedded database](http://partialjs.com/exports/nosql-logo.png)](https://github.com/petersirka/nosql)
+[![NoSQL embedded database](https://www.totaljs.com/exports/nosql-logo.png)](https://github.com/petersirka/nosql)
 
 node.js NoSQL embedded database
 ===============================
@@ -24,6 +24,8 @@ node.js NoSQL embedded database
 * __No dependencies__
 * [News on Twitter - @totalframework](https://twitter.com/totalframework)
 * Implemented in [total.js / web application framework](http://www.totaljs.com)
+
+__IMPORTANT__: The new version __v3.0.0__ has updated all callback functions. I added `err` argument to each callback.
 
 ## Installation
 
@@ -141,7 +143,7 @@ var nosql = require('nosql').load('/users/petersirka/desktop/database.nosql', '/
 // nosql.insert(doc, [fnCallback], [changes]);
 // ============================================================================
 
-var callback = function(count) {
+var callback = function(err, count) {
 	// optional
 };
 
@@ -153,7 +155,7 @@ nosql.insert({ firstName: 'Juraj', lastName: 'Hundo', age: 28 }, callback);
 // nosql.insert(array, fnCallback);
 // ============================================================================
 
-var callback = function(count) {
+var callback = function(err, count) {
 	console.log('INSERTED: ' + count);
 };
 
@@ -163,7 +165,7 @@ nosql.insert([{ firstName: 'Peter', lastName: 'Širka', age: 28 }, { firstName: 
 // nosql.update(fnUpdate, [fnCallback], [changes]);
 // ============================================================================
 
-var callback = function(count) {
+var callback = function(err, count) {
 	// updated count	
 };
 
@@ -212,7 +214,7 @@ nosql.update();
 // nosql.sort(fnMap, fnSort, fnCallback, [itemSkip], [itemTake]);
 // ============================================================================
 
-var callback = function(selected) {
+var callback = function(err, selected) {
 	
 	var users = [];
 	selected.forEach(function(o) {
@@ -239,7 +241,7 @@ nosql.each(function(doc, offset) {});
 // nosql.remove(fnFilter, [fnCallback], [changes]);
 // ============================================================================
 
-var callback = function(count) {
+var callback = function(err, count) {
 	// removed count
 });
 
@@ -277,12 +279,12 @@ nosql.view.create('young', map, sort, function(count) {
 	
 	// view was created (database create new view file database#young.db with filtered and sorted documents)
 
-	nosql.view.all('young', function(documents, count) {
+	nosql.view.all('young', function(err, documents, count) {
 		console.log(documents);
 		console.log('From total ' + count + ' documents');
 	}, 0, 10);
 
-	nosql.view.top('young', 5, function(documents) {
+	nosql.view.top('young', 5, function(err, documents) {
 		console.log(documents);
 	});
 
@@ -291,7 +293,7 @@ nosql.view.create('young', map, sort, function(count) {
 		if (doc.age === 24)
 			return doc;
 
-	}, function(document) {
+	}, function(err, document) {
 		console.log(document);
 	});
 
@@ -334,7 +336,7 @@ nosql.binary.read('1365699379204dab2csor', function(err, stream, header) {
 	stream.pipe(httpResponse);
 });
 
-nosql.binary.remove('1365699379204dab2csor', function(isRemoved) {
+nosql.binary.remove('1365699379204dab2csor', function(err, isRemoved) {
 	console.log(isRemoved === true);
 });
 
@@ -393,7 +395,7 @@ nosql.changelog.insert(['my change 1', 'my change 2', 'my change 3']);
 nosql.changelog.clear([fnCallback]);
 
 // READ CHANGELOG
-nosql.changelog.read(function(lines) {
+nosql.changelog.read(function(err, lines) {
 	console.log(lines.join('\n'));
 });
 
@@ -432,7 +434,7 @@ function sumarize() {
 		if (doc.type === 'product')
 			sum += doc.price;
 
-	}, function() {
+	}, function(err) {
 		console.log('Price of all products:', sum);
 	});
 }
@@ -443,7 +445,7 @@ function sumarize() {
 
 nosql.count(function(user) {
 	return user.age > 10 && user.age < 30;
-}, function(count) {
+}, function(err, count) {
 	console.log('Count of users between 10 and 30 years old:', count);
 });
 
@@ -456,7 +458,7 @@ nosql.count(function(user) {
 var userSkip = 10;
 var userTake = 30;
 
-nosql.view.all('users', function(users, count) {	
+nosql.view.all('users', function(err, users, count) {	
 	
 	console.log(users);
 
@@ -472,7 +474,7 @@ nosql.view.all('users', function(users, count) {
 
 // or filtering in view
 
-nosql.view.all('users', function(users, count) {	
+nosql.view.all('users', function(err, users, count) {	
 	console.log(users);
 	console.log('Total users:', count);
 }, userSkip, userTake, 'user.age > 10 && user.age < 30');
@@ -482,7 +484,7 @@ nosql.view.all('users', function(users, count) {
 nosql.all(function(user) { 
 	if (user.age > 10 && user.age < 30)
 		return user;
-}, function(users) {	
+}, function(err, users) {	
 	console.log(users);
 }, userSkip, userTake);
 
@@ -496,7 +498,7 @@ nosql.sort(function(user) {
 	if (a.age < b.age)
 		return -1;
 	return 1;
-} function(users, count) {	
+} function(err, users, count) {	
 	console.log(users);
 	console.log('Total users:', count);
 }, userSkip, userTake);

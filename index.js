@@ -12,7 +12,7 @@ var path = require('path');
 var util = require('util');
 var events = require('events');
 
-var VERSION = 'v2.0.9';
+var VERSION = 'v3.0.0';
 var STATUS_UNKNOWN = 0;
 var STATUS_READING = 1;
 var STATUS_WRITING = 2;
@@ -195,7 +195,7 @@ Database.prototype.__proto__ = Object.create(events.EventEmitter.prototype, {
 /*
     Insert data into database
     @arr {Array of Object}
-    @fnCallback {Function} :: optional, params: @count {Number}
+    @fnCallback {Function(err, count)} callback
     @changes {String} :: optional, insert description
     return {Database}
 */
@@ -219,7 +219,7 @@ Database.prototype.insert = function(arr, fnCallback, changes) {
             self.pendingWrite.push({ json: arr[i], changes: changes });
 
         if (fnCallback)
-            fnCallback(-1);
+            fnCallback(null, -1);
 
         return self;
     }
@@ -266,7 +266,7 @@ Database.prototype.insert = function(arr, fnCallback, changes) {
 
         if (fnCallback) {
             var length = builder.length;
-            setImmediate(function() { fnCallback(length); });
+            setImmediate(function() { fnCallback(null, length); });
         }
 
         builder = null;
@@ -286,7 +286,7 @@ Database.prototype.insert = function(arr, fnCallback, changes) {
 /*
     Read data from database
     @fnMap {Function} :: params: @doc {Object}, IMPORTANT: you must return {Object}
-    @fnCallback {Function} :: params: @selected {Array of Object} or {Number} if is scalar
+    @fnCallback {Function(err, array/number)}
     @itemSkip {Number} :: optional, default 0
     @itemTake {Number} :: optional, defualt 0
     @isScalar {Boolean} :: optional, default is false
@@ -372,7 +372,7 @@ Database.prototype.read = function(fnMap, fnCallback, itemSkip, itemTake, isScal
 
         setImmediate(function() {
             self.emit(name || 'read', false, isScalar ? count : selected.length);
-            fnCallback(isScalar ? count : selected);
+            fnCallback(null, isScalar ? count : selected);
         });
     });
 
@@ -382,7 +382,7 @@ Database.prototype.read = function(fnMap, fnCallback, itemSkip, itemTake, isScal
 /*
     Read all documents from database
     @fnMap {Function} :: IMPORTANT: you must return {Object}
-    @fnCallback {Function} :: params: @doc {Array of Object}
+    @fnCallback {Function(err, array)}
     @itemSkip {Number} :: optional, default 0
     @itemTake {Number} :: optional, default 0
     return {Database}
@@ -394,7 +394,7 @@ Database.prototype.all = function(fnMap, fnCallback, itemSkip, itemTake) {
 /*
     Read one document from database
     @fnMap {Function} :: must return {Object}
-    @fnCallback {Function} :: params: @doc {Object}
+    @fnCallback {Function(err, doc)}
     return {Database}
 */
 Database.prototype.one = function(fnMap, fnCallback) {
@@ -499,14 +499,11 @@ Database.prototype.each = function(fnDocument, fnCallback) {
     self.emit('each', true, 0);
 
     var reader = self.file.open(self.filename, MAX_BUFFER_SIZE, function(buffer) {
-
         onBuffer(buffer, fnItem, fnBuffer);
         return true;
-
     }, function() {
         self.countRead--;
         self.next();
-
         setImmediate(function() {
             self.emit('each', false, count);
             var length = operation.length;
@@ -516,7 +513,6 @@ Database.prototype.each = function(fnDocument, fnCallback) {
                     fn.callback();
             }
         });
-
     });
 
     return self;
@@ -528,7 +524,7 @@ Database.prototype.each = function(fnDocument, fnCallback) {
     @fnSort {Function} :: ---> array.sort()
     @itemSkip {Number}, default 0 (if itemSkip = 0 and itemTake = 0 then return all documents)
     @itemTake {Number}, default 0 (if itemSkip = 0 and itemTake = 0 then return all documents)
-    @fnCallback {Function} :: params: @doc {Object}, @count {Number}
+    @fnCallback {Function(err, selected, count)} :: params: @doc {Object}, @count {Number}
     return {Database}
 */
 Database.prototype.sort = function(fnMap, fnSort, itemSkip, itemTake, fnCallback) {
@@ -549,7 +545,7 @@ Database.prototype.sort = function(fnMap, fnSort, itemSkip, itemTake, fnCallback
         if (itemSkip > 0 || itemTake > 0)
             selected = selected.slice(itemSkip, itemSkip + itemTake);
 
-        fnCallback(selected, count);
+        fnCallback(null, selected, count);
     };
 
     var onItem = function(doc) {
@@ -696,7 +692,7 @@ Database.prototype.drop = function(fnCallback) {
                 self.emit('drop', false, true);
                 operation.forEach(function(fn) {
                     if (fn)
-                        fn();
+                        fn(null);
                 });
             });
 
@@ -715,7 +711,7 @@ Database.prototype.drop = function(fnCallback) {
                 self.emit('drop', false, err === null);
                 operation.forEach(function(fn) {
                     if (fn)
-                        fn(err === null);
+                        fn(null, err === null);
                 });
             });
         });
@@ -839,7 +835,7 @@ Database.prototype.update = function(fnUpdate, fnCallback, changes, type) {
                     changes.push(o.changes);
 
                 if (o.callback)
-                    (function(cb,count) { setImmediate(function() { cb(count); }); })(o.callback, o.count);
+                    (function(cb,count) { setImmediate(function() { cb(null, count); }); })(o.callback, o.count);
 
             });
 
@@ -1296,7 +1292,7 @@ Views.prototype.drop = function(name, fnCallback, changes) {
             if (!exists) {
 
                 if (fnCallback)
-                    fnCallback(true);
+                    fnCallback(null, true);
 
                 if (cb)
                     cb();
@@ -1310,7 +1306,7 @@ Views.prototype.drop = function(name, fnCallback, changes) {
                     self.db.emit('error', err, 'view/drop');
 
                 if (fnCallback)
-                    fnCallback(true);
+                    fnCallback(err, true);
 
                 if (cb)
                     cb();
@@ -1366,7 +1362,7 @@ Views.prototype.refresh = function(name, fnCallback) {
                     schema.isReady = true;
 
                     if (fnCallback)
-                        setImmediate(function() { fnCallback(count); });
+                        setImmediate(function() { fnCallback(null, count); });
 
                     if (cb)
                         cb();
@@ -1564,7 +1560,7 @@ View.prototype.read = function(fnMap, fnCallback, itemSkip, itemTake, skipCount,
 
         setImmediate(function() {
             self.emit('view', false, self.name, count);
-            fnCallback(selected, count);
+            fnCallback(null, selected, count);
         });
     });
 
@@ -1834,7 +1830,7 @@ Binary.prototype.insert = function(name, type, buffer, fnCallback, changes) {
         self.db.changelog.insert(changes);
 
     if (fnCallback)
-        fnCallback(id, header);
+        fnCallback(null, id, header);
 
     return id;
 };
@@ -1890,7 +1886,7 @@ Binary.prototype.update = function(id, name, type, buffer, fnCallback, changes) 
         self.db.changelog.insert(changes);
 
     if (fnCallback)
-        fnCallback(id, header);
+        fnCallback(null, id, header);
 
     return id;
 };
@@ -1958,14 +1954,14 @@ Binary.prototype.remove = function(id, fnCallback, changes) {
         if (!exists) {
 
             if (fnCallback)
-                fnCallback(false);
+                fnCallback(null, false);
 
             return;
         }
 
-        fs.unlink(filename, function() {
+        fs.unlink(filename, function(err) {
             if (fnCallback)
-                fnCallback(true);
+                fnCallback(err, true);
         });
     });
 
@@ -2105,18 +2101,14 @@ Changelog.prototype.clear = function(fnCallback) {
         }
 
         fs.unlink(self.filename, function(err, data) {
-
             if (err) {
-
                 if (fnCallback)
-                    fnCallback(false);
-
+                    fnCallback(err, false);
                 return;
             }
 
             if (fnCallback)
-                fnCallback(true);
-
+                fnCallback(null, true);
         });
 
     });
@@ -2317,8 +2309,8 @@ function dimensionJPG(buffer) {
         while (0xff == buffer[o]) o++;
 
         if (!sof[buffer[o]]) {
-                o += u16(buffer, ++o);
-                continue;
+            o += u16(buffer, ++o);
+            continue;
         }
 
         var w = u16(buffer, o + 6);
