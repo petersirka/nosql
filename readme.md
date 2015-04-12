@@ -505,6 +505,29 @@ nosql.sort(function(user) {
 
 ```
 
+## Generators
+
+```javascript
+// nosql.$$all(fnMap, [itemSkip], [itemTake]);
+// nosql.$$one(fnMap);
+// nosql.$$top(max, fnMap);
+// nosql.$$each();
+// nosql.$$insert(doc, [changes]);
+// nosql.$$update(fnUpdate, [changes]);
+// nosql.$$prepare(fnUpdate, [changes]);
+// nosql.$$sort(fnMap, fnSort, [itemSkip], [itemTake]);
+// nosql.$$remove(fnFilter, [changes]);
+// nosql.view.$$all(name, [itemSkip], [itemTake], [fnMap]);
+// nosql.view.$$one(name, [fnMap]);
+// nosql.view.$$top(name, top, [fnMap]);
+// nosql.view.$$create(name, fnMap, fnSort, [fnUpdate], [changes]);
+// nosql.view.$$drop(name, [changes]);
+// nosql.binary.$$insert(name, contentType, buffer/base64, [chnages]); - return file ID
+// nosql.binary.$$update(id, name, contentType, buffer/base64, [changes]); - return file ID
+// nosql.binary.$$read(id);
+// nosql.binary.$$remove(id, [changes]);
+```
+
 ## The MIT License
 
 Copyright (c) 2012-2013 Peter Širka <petersirka@gmail.com>
