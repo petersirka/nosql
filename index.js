@@ -399,8 +399,8 @@ Database.prototype.all = function(fnMap, fnCallback, itemSkip, itemTake) {
 */
 Database.prototype.one = function(fnMap, fnCallback) {
 
-    var cb = function(selected) {
-        fnCallback(null, selected ? selected[0] || null : null);
+    var cb = function(err, selected) {
+        fnCallback(err, selected ? selected[0] || null : null);
     };
 
     return this.read(fnMap, cb, 0, 1, false, 'one');
