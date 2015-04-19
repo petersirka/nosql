@@ -252,11 +252,11 @@ var filter = function(doc) {
 nosql.remove(filter, callback);
 
 // VIEWS
-// nosql.view.all(name, fnCallback, [itemSkip], [itemTake], [fnMap]);
-// nosql.view.one(name, [fnMap], fnCallback);
-// nosql.view.top(name, top, fnCallback, [fnMap]);
-// nosql.view.create(name, fnMap, fnSort, [fnCallback], [fnUpdate], [changes]);
-// nosql.view.drop(name, [fnCallback], [changes]);
+// nosql.views.all(name, fnCallback, [itemSkip], [itemTake], [fnMap]);
+// nosql.views.one(name, [fnMap], fnCallback);
+// nosql.views.top(name, top, fnCallback, [fnMap]);
+// nosql.views.create(name, fnMap, fnSort, [fnCallback], [fnUpdate], [changes]);
+// nosql.views.drop(name, [fnCallback], [changes]);
 // ============================================================================
 
 var map = function(doc) {
@@ -270,25 +270,25 @@ var sort = function(a, b) {
 	return -1;
 };
 
-nosql.view.all('young', function(documents, count) {
+nosql.views.all('young', function(documents, count) {
 	// view file not created
 	// documents === empty
 }, 0, 10);
 
-nosql.view.create('young', map, sort, function(count) {	
+nosql.views.create('young', map, sort, function(count) {	
 	
 	// view was created (database create new view file database#young.db with filtered and sorted documents)
 
-	nosql.view.all('young', function(err, documents, count) {
+	nosql.views.all('young', function(err, documents, count) {
 		console.log(documents);
 		console.log('From total ' + count + ' documents');
 	}, 0, 10);
 
-	nosql.view.top('young', 5, function(err, documents) {
+	nosql.views.top('young', 5, function(err, documents) {
 		console.log(documents);
 	});
 
-	nosql.view.one('young', function(doc) {
+	nosql.views.one('young', function(doc) {
 		
 		if (doc.age === 24)
 			return doc;
@@ -415,7 +415,7 @@ function addUser() {
 	nosql.insert(user, function() {
 
 		// refresh view
-		nosql.view.create('user', yourGlobalUser.filter, yourGlobalUser.sort);
+		nosql.views.create('user', yourGlobalUser.filter, yourGlobalUser.sort);
 
 	});
 }
@@ -458,7 +458,7 @@ nosql.count(function(user) {
 var userSkip = 10;
 var userTake = 30;
 
-nosql.view.all('users', function(err, users, count) {	
+nosql.views.all('users', function(err, users, count) {	
 	
 	console.log(users);
 
@@ -474,7 +474,7 @@ nosql.view.all('users', function(err, users, count) {
 
 // or filtering in view
 
-nosql.view.all('users', function(err, users, count) {	
+nosql.views.all('users', function(err, users, count) {	
 	console.log(users);
 	console.log('Total users:', count);
 }, userSkip, userTake, 'user.age > 10 && user.age < 30');
@@ -503,6 +503,29 @@ nosql.sort(function(user) {
 	console.log('Total users:', count);
 }, userSkip, userTake);
 
+```
+
+## Generators
+
+```javascript
+// nosql.$$all(fnMap, [itemSkip], [itemTake]);
+// nosql.$$one(fnMap);
+// nosql.$$top(max, fnMap);
+// nosql.$$each();
+// nosql.$$insert(doc, [changes]);
+// nosql.$$update(fnUpdate, [changes]);
+// nosql.$$prepare(fnUpdate, [changes]);
+// nosql.$$sort(fnMap, fnSort, [itemSkip], [itemTake]);
+// nosql.$$remove(fnFilter, [changes]);
+// nosql.views.$$all(name, [itemSkip], [itemTake], [fnMap]);
+// nosql.views.$$one(name, [fnMap]);
+// nosql.views.$$top(name, top, [fnMap]);
+// nosql.views.$$create(name, fnMap, fnSort, [fnUpdate], [changes]);
+// nosql.views.$$drop(name, [changes]);
+// nosql.binary.$$insert(name, contentType, buffer/base64, [chnages]); - return file ID
+// nosql.binary.$$update(id, name, contentType, buffer/base64, [changes]); - return file ID
+// nosql.binary.$$read(id);
+// nosql.binary.$$remove(id, [changes]);
 ```
 
 ## The MIT License
