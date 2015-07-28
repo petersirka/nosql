@@ -149,7 +149,7 @@ setTimeout(function() {
 	console.log('');
 	console.log('CHANGELOG:');
 	console.log('');
-	db.changelog.read(function(lines) {
+	db.changelog.read(function(err, lines) {
 		console.log(lines);
 	});
 /*
