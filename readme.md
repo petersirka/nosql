@@ -80,7 +80,7 @@ var nosql = require('nosql').load('/users/petersirka/desktop/database.nosql');
 // Create a new stored function
 // nosql.stored.create(name, function, [callback], [changes]);
 nosql.stored.create('counter', function(nosql, next, params) {
-	
+
 	// nosql === nosql embedded database object
 
 	nosql.update(function(doc) {
@@ -166,11 +166,11 @@ nosql.insert([{ firstName: 'Peter', lastName: 'Širka', age: 28 }, { firstName: 
 // ============================================================================
 
 var callback = function(err, count) {
-	// updated count	
+	// updated count
 };
 
 nosql.update(function(doc) {
-	
+
 	if (doc.name === 'Peter')
 		doc.name = 'Jano';
 
@@ -192,7 +192,7 @@ nosql.prepare(function(doc) {
 });
 
 nosql.prepare(function(doc) {
-	
+
 	if (doc.index === 2320)
 		doc.name = 'Peter';
 
@@ -215,7 +215,7 @@ nosql.update();
 // ============================================================================
 
 var callback = function(err, selected) {
-	
+
 	var users = [];
 	selected.forEach(function(o) {
 		users.push(o.firstName + ' ' + o.lastName);
@@ -270,13 +270,13 @@ var sort = function(a, b) {
 	return -1;
 };
 
-nosql.views.all('young', function(documents, count) {
+nosql.views.all('young', function(err, documents, count) {
 	// view file not created
 	// documents === empty
 }, 0, 10);
 
-nosql.views.create('young', map, sort, function(count) {	
-	
+nosql.views.create('young', map, sort, function(err, count) {
+
 	// view was created (database create new view file database#young.db with filtered and sorted documents)
 
 	nosql.views.all('young', function(err, documents, count) {
@@ -289,7 +289,7 @@ nosql.views.create('young', map, sort, function(count) {
 	});
 
 	nosql.views.one('young', function(doc) {
-		
+
 		if (doc.age === 24)
 			return doc;
 
@@ -319,7 +319,7 @@ fs.readFile('/users/petersirka/desktop/picture.jpg', function(err, data) {
 });
 
 nosql.binary.read('1365699379204dab2csor', function(err, stream, header) {
-	
+
 	if (err)
 		return;
 
@@ -330,9 +330,9 @@ nosql.binary.read('1365699379204dab2csor', function(err, stream, header) {
 	// header.height; - image height
 
 	stream.pipe(fs.createWriteStream('/users/petersirka/dekstop/picture-database.jpg'));
-	
+
 	// or
-	
+
 	stream.pipe(httpResponse);
 });
 
@@ -404,7 +404,6 @@ nosql.changelog.read(function(err, lines) {
 ## Tips
 
 ```js
-
 // ============================================================================
 // How to create live view?
 // ============================================================================
@@ -458,8 +457,8 @@ nosql.count(function(user) {
 var userSkip = 10;
 var userTake = 30;
 
-nosql.views.all('users', function(err, users, count) {	
-	
+nosql.views.all('users', function(err, users, count) {
+
 	console.log(users);
 
 	var pageCount = count / userTake;
@@ -474,17 +473,17 @@ nosql.views.all('users', function(err, users, count) {
 
 // or filtering in view
 
-nosql.views.all('users', function(err, users, count) {	
+nosql.views.all('users', function(err, users, count) {
 	console.log(users);
 	console.log('Total users:', count);
 }, userSkip, userTake, 'user.age > 10 && user.age < 30');
 
 // Without view:
 
-nosql.all(function(user) { 
+nosql.all(function(user) {
 	if (user.age > 10 && user.age < 30)
 		return user;
-}, function(err, users) {	
+}, function(err, users) {
 	console.log(users);
 }, userSkip, userTake);
 
@@ -498,7 +497,7 @@ nosql.sort(function(user) {
 	if (a.age < b.age)
 		return -1;
 	return 1;
-} function(err, users, count) {	
+} function(err, users, count) {
 	console.log(users);
 	console.log('Total users:', count);
 }, userSkip, userTake);
