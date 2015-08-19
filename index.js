@@ -900,8 +900,15 @@ Database.prototype.update = function(fnUpdate, fnCallback, changes, type) {
         });
     };
 
+    var can = true;
+
     // write to temporary
     var fnWrite = function(json, valid) {
+
+        if (can) {
+            can = false;
+            fs.appendFile(self.filenameTemp, '');
+        }
 
         if (lines.length > 25 || valid) {
 
@@ -959,8 +966,6 @@ Database.prototype.update = function(fnUpdate, fnCallback, changes, type) {
 
         fnWrite(updated);
     };
-
-    fs.appendFile(self.filenameTemp, '');
 
     self.file.open(self.filename, MAX_BUFFER_SIZE, function(buffer) {
         onBuffer(buffer.toString(), fnItem, fnBuffer);
