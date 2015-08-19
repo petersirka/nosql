@@ -300,8 +300,8 @@ nosql.views.create('young', map, sort, function(err, count) {
 });
 
 // BINARY FILES
-// nosql.binary.insert(name, contentType, buffer/base64, [callback], [chnages]); - return file ID
-// nosql.binary.update(id, name, contentType, buffer/base64, [callback], [changes]); - return file ID
+// nosql.binary.insert(name, contentType, buffer/base64/stream, [callback], [changes]); - return file ID
+// nosql.binary.update(id, name, contentType, buffer/base64/stream, [callback], [changes]); - return file ID
 // nosql.binary.read(id, fnCallback);
 // nosql.binary.remove(id, [fnCallback], [changes]);
 // ============================================================================
@@ -319,6 +319,10 @@ fs.readFile('/users/petersirka/desktop/picture.jpg', function(err, data) {
 });
 
 nosql.binary.read('1365699379204dab2csor', function(err, stream, header) {
+
+	// IMPORTANT:
+	// if you have problem with "pipe" then enable [pipeProblem] argument.
+	// nosql.binary.read('id', fn, true);
 
 	if (err)
 		return;
@@ -521,7 +525,7 @@ nosql.sort(function(user) {
 // nosql.views.$$top(name, top, [fnMap]);
 // nosql.views.$$create(name, fnMap, fnSort, [fnUpdate], [changes]);
 // nosql.views.$$drop(name, [changes]);
-// nosql.binary.$$insert(name, contentType, buffer/base64, [chnages]); - return file ID
+// nosql.binary.$$insert(name, contentType, buffer/base64, [changes]); - return file ID
 // nosql.binary.$$update(id, name, contentType, buffer/base64, [changes]); - return file ID
 // nosql.binary.$$read(id);
 // nosql.binary.$$remove(id, [changes]);

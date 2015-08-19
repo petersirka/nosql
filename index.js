@@ -2,7 +2,7 @@
  * @module NoSQL Embedded Database
  * @author Peter Širka <petersirka@gmail.com>
  * @copyright Peter Širka 2012-2015
- * @version 3.0.3
+ * @version 3.0.4
  */
 
 'use strict';
@@ -1940,6 +1940,9 @@ Binary.prototype.insert = function(name, type, buffer, fnCallback, changes) {
     if (typeof(buffer) === STRING)
         buffer = new Buffer(buffer, 'base64');
 
+    if (buffer.resume)
+        return this.insert_stream(null, name, type, buffer, callback, changes);
+
     if (typeof(fnCallback) === STRING) {
         changes = fnCallback;
         fnCallback = null;
@@ -1979,6 +1982,33 @@ Binary.prototype.insert = function(name, type, buffer, fnCallback, changes) {
     return id;
 };
 
+Binary.prototype.insert_stream = function(id, name, type, stream, fnCallback, changes) {
+
+    self.check();
+
+    var header = new Buffer(BINARY_HEADER_LENGTH);
+    header.fill(' ');
+    header.write(JSON.stringify({ name: name, size: size, type: type, width: 0, height: 0 }));
+
+    if (!id)
+        id = new Date().getTime().toString() + Math.random().toString(36).substring(10);
+
+    var key = self.db.name + '#' + id;
+    var stream = fs.createWriteStream(path.join(self.directory, key + EXTENSION_BINARY));
+
+    stream.write(header, 'binary');
+    stream.pipe(stream);
+    stream = null;
+
+    if (changes)
+        self.db.changelog.insert(changes);
+
+    if (fnCallback)
+        fnCallback(null, id, header);
+
+    return id;
+};
+
 Binary.prototype.$$insert = function(name, type, buffer, changes) {
     var self = this;
     return function(callback) {
@@ -2000,6 +2030,9 @@ Binary.prototype.update = function(id, name, type, buffer, fnCallback, changes) 
 
     if (typeof(buffer) === STRING)
         buffer = new Buffer(buffer, 'base64');
+
+    if (buffer.resume)
+        return this.insert_stream(id, name, type, buffer, callback, changes);
 
     if (typeof(fnCallback) === STRING) {
         changes = fnCallback;
