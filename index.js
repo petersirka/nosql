@@ -2,7 +2,7 @@
  * @module NoSQL Embedded Database
  * @author Peter Širka <petersirka@gmail.com>
  * @copyright Peter Širka 2012-2015
- * @version 3.0.4
+ * @version 3.1.0
  */
 
 'use strict';
@@ -70,6 +70,7 @@ function Database(filename, directory, changes) {
 	this.pendingClear = [];
 
 	this.isPending = false;
+	this.lockedupdate;
 
 	if (filename.indexOf(EXTENSION) !== -1)
 		filename = filename.replace(EXTENSION, '');
@@ -99,6 +100,7 @@ function Database(filename, directory, changes) {
 	this.file = new FileReader(this);
 	this.stored = new Stored(this, this.filenameStored);
 
+	fs.unlink(this.filenameTemp, noop);
 	this._metaLoad();
 }
 
@@ -213,40 +215,80 @@ Database.prototype.insert = function(arr, fnCallback, changes) {
 
 	var length = arr.length;
 
-	if (self.status === STATUS_LOCKING|| self.status === STATUS_PENDING || self.countWrite >= MAX_WRITESTREAM) {
-
+	if (self.status === STATUS_LOCKING|| self.status === STATUS_PENDING || self.countWrite >= MAX_WRITESTREAM || self.lockedinsert) {
 		for (var i = 0; i < length; i++)
-			self.pendingWrite.push({ json: arr[i], changes: changes });
+			self.pendingWrite.push({ json: arr[i], changes: changes, callback: fnCallback });
+		return self;
+	}
 
-		if (fnCallback)
-			fnCallback(null, -1);
+	self.pendingWrite.push({ json: arr[i], changes: changes, callback: fnCallback });
+	self.insert_can();
+	return self;
+};
 
+// Checks if the insert can perform insert into DB file
+Database.prototype.insert_can = function() {
+
+	var self = this;
+
+	// Checks if the file is not locked
+	fs.exists(self.filenameTemp, function(e) {
+
+		clearTimeout(self.lockedinsert);
+
+		// The file doesn't exist
+		if (!e) {
+			fs.appendFile(self.filenameTemp, '', function() {
+				self.insert_force();
+			});
+			return;
+		}
+
+		// timer for watching changes
+		self.lockedinsert = setTimeout(function() {
+			self.insert_can();
+		}, 100);
+	});
+};
+
+Database.prototype.insert_force = function() {
+
+	var self = this;
+
+	if (typeof(fnCallback) === STRING) {
+		changes = fnCallback;
+		fnCallback = null;
+	}
+
+	if (!(arr instanceof Array))
+		arr = [arr];
+
+	var length = self.pendingWrite.length;
+	if (!length) {
+		fs.unlink(self.filenameTemp, noop);
+		self.next();
 		return self;
 	}
 
 	var builder = [];
 	var builderChanges = [];
+	var callbacks = [];
 
 	for (var i = 0; i < length; i++) {
 
-		var doc = arr[i];
+		var item = self.pendingWrite[i];
 
-		if (doc.json === undefined) {
-			builder.push(doc);
+		for (var j = 0, jl = item.json.length; j < jl; j++)
+			builder.push(item.json[j]);
 
-			if (changes)
-				builderChanges.push(changes);
+		if (item.changes)
+			builderChanges.push(changes);
 
-			continue;
-		}
-
-		builder.push(doc.json);
-
-		if (doc.changes)
-			builderChanges.push(doc.changes);
+		if (item.callback)
+			callbacks.push(item.callback);
 	}
 
-	if (builder.length === 0) {
+	if (!builder.length) {
 		self.next();
 		return;
 	}
@@ -258,24 +300,23 @@ Database.prototype.insert = function(arr, fnCallback, changes) {
 
 	appendFile(self.filename, builder, function() {
 
+		fs.unlink(self.filenameTemp, noop);
+
 		self.countWrite--;
 		self.emit('insert', false, builder.length);
 		self.next();
 
 		self.changelog.insert(builderChanges);
 
-		if (fnCallback) {
-			var length = builder.length;
-			setImmediate(function() { fnCallback(null, length); });
-		}
+		for (var i = 0, length = callbacks.length; i < length; i++)
+			(function(callback){ setImmediate(function() { callback(null, length); }); })(callbacks[i]);
 
 		builder = null;
 		builderChanges = null;
 		arr = null;
 
 		var keys = Object.keys(self.meta.views);
-		var length = keys.length;
-		for (var i = 0; i < length; i++)
+		for (var i = 0, length = keys.length; i < length; i++)
 			self.views.refresh(keys[i]);
 
 	}, self);
@@ -833,24 +874,59 @@ Database.prototype.update = function(fnUpdate, fnCallback, changes, type) {
 	if (fnUpdate !== undefined)
 		self.pendingLock.push(updatePrepare(fnUpdate, fnCallback, changes, type || 'update'));
 
+	if (self.lockedpid)
+		return self;
+
+	self.update_can();
+	return self;
+};
+
+// Checks if the update can perform update into DB file
+Database.prototype.update_can = function() {
+
+	var self = this;
+
+	// Checks if the file is not locked
+	fs.exists(self.filenameTemp, function(e) {
+
+		clearTimeout(self.lockedpid);
+
+		// The file doesn't exist
+		if (!e) {
+			self.update_force();
+			return;
+		}
+
+		// timer for watching changes
+		self.lockedupdate = setTimeout(function() {
+			self.update_can();
+		}, 100);
+	});
+};
+
+// Updates file about all pending changes
+Database.prototype.update_force = function() {
+	var self = this;
+
 	if (self.status !== STATUS_UNKNOWN)
 		return self;
 
-	var operation = [];
+	var operationLength = self.pendingLock.length;
+	console.log('UPDATE PENDING', operationLength);
 
-	self.pendingLock.forEach(function(fn) {
-		operation.push(fn);
-	});
-
-	if (operation.length === 0) {
+	if (!operationLength) {
 		self.next();
 		return self;
 	}
 
+	var operation = new Array(operationLength);
+
+	for (var i = 0; i < operationLength; i++)
+		operation[i] = self.pendingLock[i];
+
 	self.status = STATUS_LOCKING;
 
 	var current = '';
-	var operationLength = operation.length;
 	var lines = [];
 
 	var countRemove = 0;
@@ -896,8 +972,13 @@ Database.prototype.update = function(fnUpdate, fnCallback, changes, type) {
 			if (changes.length > 0)
 				self.changelog.insert(changes);
 
-			self.next();
+			// Updates all views
+			var keys = Object.keys(self.meta.views);
+			var length = keys.length;
+			for (var i = 0; i < length; i++)
+				self.views.refresh(keys[i]);
 
+			self.next();
 		});
 	};
 
@@ -911,7 +992,8 @@ Database.prototype.update = function(fnUpdate, fnCallback, changes, type) {
 			fs.appendFile(self.filenameTemp, '');
 		}
 
-		if (lines.length > 25 || valid) {
+		// 15 = items in queue for writing
+		if (lines.length > 15 || valid) {
 
 			if (lines.length === 0) {
 				if (completed && countWrite <= 0)
@@ -1119,17 +1201,12 @@ Database.prototype.next = function() {
 		return;
 	}
 
-	if (self.pendingWrite.length > 0) {
-		self.insert(self.pendingWrite);
-		self.pendingWrite = [];
+	if (self.pendingWrite.length > 0)
 		return;
-	}
 
 	// large operation (truncate file)
-	if (self.pendingLock.length > 0) {
-		self.update();
+	if (self.pendingLock.length > 0)
 		return;
-	}
 
 	if (self.pendingEach.length > 0) {
 		self.each();
@@ -1139,13 +1216,10 @@ Database.prototype.next = function() {
 	// read data
 	if (self.pendingRead.length > 0) {
 		var max = self.pendingRead.length;
-
 		if (max > MAX_READSTREAM)
 			max = MAX_READSTREAM;
-
 		for (var i = 0; i < max; i++)
 			self.pendingRead.shift()();
-
 		return;
 	}
 
@@ -1233,7 +1307,6 @@ Database.prototype._metaLoad = function(callback) {
 
 		if (callback)
 			callback(true, self.meta);
-
 	});
 
 	return self;
