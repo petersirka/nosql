@@ -283,13 +283,6 @@ Database.prototype.insert = function(arr, fnCallback, changes) {
 	return self;
 };
 
-Database.prototype.$$insert = function(arr, changes) {
-	var self = this;
-	return function(callback) {
-		self.insert(arr, callback, changes);
-	};
-};
-
 /*
 	Read data from database
 	@fnMap {Function} :: params: @doc {Object}, IMPORTANT: you must return {Object}
@@ -395,12 +388,6 @@ Database.prototype.all = function(fnMap, fnCallback, itemSkip, itemTake) {
 	return this.read(fnMap, fnCallback, itemSkip, itemTake, false, 'all');
 };
 
-Database.prototype.$$all = function(fnMap, itemSkip, itemTake) {
-	var self = this;
-	return function(callback) {
-		return self.all(fnMap, callback, itemSkip, itemTake);
-	};
-};
 
 /*
 	Read one document from database
@@ -417,12 +404,6 @@ Database.prototype.one = function(fnMap, fnCallback) {
 	return this.read(fnMap, cb, 0, 1, false, 'one');
 };
 
-Database.prototype.$$one = function(fnMap) {
-	var self = this;
-	return function(callback) {
-		return self.one(fnMap, callback);
-	};
-};
 
 /*
 	Read TOP "x" documents from database
@@ -434,12 +415,6 @@ Database.prototype.top = function(max, fnMap, fnCallback) {
 	return this.read(fnMap, fnCallback, 0, max, false, 'top');
 };
 
-Database.prototype.$$top = function(max, fnMap) {
-	var self = this;
-	return function(callback) {
-		return self.top(max, fnMap, callback);
-	};
-};
 
 /*
 	Count documents
@@ -451,12 +426,6 @@ Database.prototype.count = function(fnFilter, fnCallback) {
 	return this.read(fnFilter, fnCallback, 0, 0, true, 'count');
 };
 
-Database.prototype.$$count = function(fnFilter) {
-	var self = this;
-	return function(callback) {
-		return self.count(fnFilter, fnMap, callback);
-	};
-};
 
 /*
 	Read each document from database
@@ -550,12 +519,6 @@ Database.prototype.each = function(fnDocument, fnCallback) {
 	return self;
 };
 
-Database.prototype.$$each = function(fnDocument) {
-	var self = this;
-	return function(callback) {
-		return self.each(fnDocument, callback);
-	};
-};
 
 /*
 	Read and sort documents from database (SLOWLY)
@@ -602,12 +565,6 @@ Database.prototype.sort = function(fnMap, fnSort, fnCallback, itemSkip, itemTake
 	return self;
 };
 
-Database.prototype.$$sort = function(fnMap, fnSort, itemSkip, itemTake) {
-	var self = this;
-	return function(callback) {
-		self.sort(fnMap, fnSort, callback, itemSkip, itemTake);
-	};
-};
 
 /*
 	Clear database
@@ -698,12 +655,6 @@ Database.prototype.clear = function(fnCallback, changes) {
 	return self;
 };
 
-Database.prototype.$$clear = function(changes) {
-	var self = this;
-	return function(callback) {
-		self.clear(callback, changes);
-	};
-};
 
 /*
 	Drop database
@@ -774,12 +725,6 @@ Database.prototype.drop = function(fnCallback) {
 	return self;
 };
 
-Database.prototype.$$drop = function() {
-	var self = this;
-	return function(callback) {
-		self.drop(callback);
-	};
-};
 
 function noop() {};
 
@@ -1004,12 +949,6 @@ Database.prototype.update = function(fnUpdate, fnCallback, changes, type) {
 	return self;
 };
 
-Database.prototype.$$update = function(fnUpdate, changes, type) {
-	var self = this;
-	return function(callback) {
-		self.update(fnUpdate, callback, changes, type);
-	};
-};
 
 /*
 	Update multiple documents
@@ -1027,12 +966,6 @@ Database.prototype.prepare = function(fnUpdate, fnCallback, changes) {
 	return self;
 };
 
-Database.prototype.$$prepare = function(fnUpdate, changes) {
-	var self = this;
-	return function(callback) {
-		self.prepare(fnUpdate, callback, changes);
-	};
-};
 
 /*
 	Remove data from database
@@ -1060,12 +993,6 @@ Database.prototype.remove = function(fnFilter, fnCallback, changes) {
 	return self;
 };
 
-Database.prototype.$$remove = function(fnFilter, changes) {
-	var self = this;
-	return function(callback) {
-		self.remove(fnFilter, callback, changes);
-	}
-};
 
 Database.prototype.pause = function() {
 	var self = this;
@@ -1291,12 +1218,6 @@ Views.prototype.all = function(name, fnCallback, itemSkip, itemTake, fnMap) {
 	return self.db;
 };
 
-Views.prototype.$$all = function(name, itemSkip, itemTake, fnMap) {
-	var self = this;
-	return function(callback) {
-		self.all(name, callback, itemSkip, itemTake, fnMap);
-	};
-};
 
 /*
 	Read documents from view
@@ -1326,12 +1247,6 @@ Views.prototype.top = function(name, top, fnCallback, fnMap) {
 	return self.db;
 };
 
-Views.prototype.$$top = function(name, top, fnMap) {
-	var self = this;
-	return function(callback) {
-		self.top(name, top, callback, fnMap);
-	};
-};
 
 /*
 	Read one document from view
@@ -1365,12 +1280,6 @@ Views.prototype.one = function(name, fnMap, fnCallback) {
 	return self.db;
 };
 
-Views.prototype.$$one = function(name, fnMap) {
-	var self = this;
-	return function(callback) {
-		self.one(name, fnMap, callback);
-	};
-};
 
 /*
 	Drop view
@@ -1435,12 +1344,6 @@ Views.prototype.drop = function(name, fnCallback, changes) {
 	return self.db;
 };
 
-Views.prototype.$$drop = function(name, fnCallback, changes) {
-	var self = this;
-	return function(callback) {
-		self.drop(name, callback, changes);
-	};
-};
 
 Views.prototype.refresh = function(name, fnCallback) {
 
@@ -1533,12 +1436,6 @@ Views.prototype.refresh = function(name, fnCallback) {
 	self.db.each(onItem, onCallback);
 };
 
-Views.prototype.$$refresh = function(name) {
-	var self = this;
-	return function(callback) {
-		self.refresh(name, callback);
-	};
-};
 
 /*
 	Create view
@@ -1577,12 +1474,6 @@ Views.prototype.create = function(name, fnMap, fnSort, fnCallback, changes) {
 	return self;
 };
 
-Views.prototype.$$create = function(name, fnMap, fnSort, changes) {
-	var self = this;
-	return function(callback) {
-		self.create(name, fnMap, fnSort, callback, changes);
-	};
-};
 
 /*
 	Create view object
@@ -1801,12 +1692,6 @@ Stored.prototype.create = function(name, fn, fnCallback, changes) {
 	return self.db;
 };
 
-Stored.prototype.$$create = function(name, fn, changes) {
-	var self = this;
-	return function(callback) {
-		self.create(name, fn, callback, changes);
-	};
-};
 
 
 /*
@@ -1837,12 +1722,6 @@ Stored.prototype.remove = function(name, fnCallback, changes) {
 	return self.db;
 };
 
-Stored.prototype.$$remove = function(name, changes) {
-	var self = this;
-	return function(callback) {
-		self.remove(name, callback, changes);
-	};
-};
 
 /*
 	Clear all stored functions
@@ -1870,12 +1749,6 @@ Stored.prototype.clear = function(fnCallback, changes) {
 	return self.db;
 };
 
-Stored.prototype.$$clear = function(changes) {
-	var self = this;
-	return function(callback) {
-		self.clear(callback, changes);
-	};
-};
 
 /*
 	Execute a stored function
@@ -1939,12 +1812,6 @@ Stored.prototype.execute = function(name, params, fnCallback, changes) {
 	return self;
 };
 
-Stored.prototype.$$execute = function(name, params, changes) {
-	var self = this;
-	return function(callback) {
-		self.execute(name, params, callback, changes);
-	};
-};
 
 // ========================================================================
 // BINARY PROTOTYPE
@@ -2033,12 +1900,6 @@ Binary.prototype.insert_stream = function(id, name, type, stream, fnCallback, ch
 	return id;
 };
 
-Binary.prototype.$$insert = function(name, type, buffer, changes) {
-	var self = this;
-	return function(callback) {
-		self.insert(name, type, buf, callback, changes);
-	};
-};
 
 /*
 	Update binary file
@@ -2099,12 +1960,6 @@ Binary.prototype.update = function(id, name, type, buffer, fnCallback, changes) 
 	return id;
 };
 
-Binary.prototype.$$update = function(id, name, type, buffer, changes) {
-	var self = this;
-	return function(callback) {
-		self.update(id, name, type, update, callback, changes);
-	};
-};
 
 /*
 	Read binary file
@@ -2137,12 +1992,6 @@ Binary.prototype.read = function(id, callback) {
 	return self.db;
 };
 
-Binary.prototype.$$read = function(id) {
-	var self = this;
-	return function(callback) {
-		self.read(id, callback);
-	};
-};
 
 /*
 	Remove binary file
@@ -2190,12 +2039,6 @@ Binary.prototype.remove = function(id, fnCallback, changes) {
 	return self.db;
 };
 
-Binary.prototype.$$remove = function(id, changes) {
-	var self = this;
-	return function(callback) {
-		self.remove(id, callback, changes);
-	};
-};
 
 /**
  * Check a directory existence
@@ -2312,12 +2155,6 @@ Changelog.prototype.read = function(fnCallback) {
 	return self.db;
 };
 
-Changelog.prototype.$$read = function() {
-	var self = this;
-	return function(callback) {
-		self.read(callback);
-	}
-};
 
 /*
 	Clear changelog
@@ -2351,12 +2188,6 @@ Changelog.prototype.clear = function(fnCallback) {
 	return self.db;
 };
 
-Changelog.prototype.$$clear = function() {
-	var self = this;
-	return function(callback) {
-		self.clear(callback);
-	}
-};
 
 
 // ========================================================================
@@ -2572,6 +2403,91 @@ function dimensionJPG(buffer) {
 function dimensionPNG(buffer) {
 	return { width: u32(buffer, 16), height: u32(buffer, 16 + 4) };
 };
+
+// MIT
+// Written by https://github.com/evmek
+function getArgumentsNames(fn) {
+    var a = /\(([\s\S]*?)\)/.exec(fn)[1].trim();
+    if (a.length===0) return [];
+    return a.split(/[ ,\n\r\t]+/);
+};
+
+// from the U.sync in total.js
+function sync(fn, owner) {
+    return function() {
+        var params;
+        var callback;
+        var executed = false;
+        var self = owner || this;
+        var args = [].slice.call(arguments);
+
+        args.push(function() {
+            params = arguments;
+            if (!executed && callback) {
+                executed = true;
+                callback.apply(self, params);
+            }
+        });
+
+        fn.apply(self, args);
+
+        return function(cb) {
+            callback = cb;
+            if (!executed && params) {
+                executed = true;
+                callback.apply(self, params);
+            }
+        };
+    };
+};
+
+// MIT
+// Written by https://github.com/evmek
+function addGenarators(base,cbName){
+    if(!cbName)cbName="fnCallback";
+
+    if(Array.isArray(base)){
+        base.forEach(function(i){
+            addGenarators(i,cbName);
+        });
+        return;
+    };
+
+    for(var fnName in base){
+        if(!base.hasOwnProperty(fnName)) continue;
+        if(Object.getOwnPropertyDescriptor(base,fnName)["value"] == null ) continue ;
+        if(typeof base[fnName] !== "function")  continue;
+
+        var a = getArgumentsNames(base[fnName]);
+        var has = a.indexOf(cbName);
+        if (has<0) return ;
+
+        var a2 = a.join(",");
+        a.splice(has,1);
+        var a1 = a.join(",") ;
+
+        base["$$" + fnName] = eval("(function(" + a1 + "){var self=this;return function(" + cbName + "){return self." + fnName + "(" + a2 + ")}})");
+
+        base["sync"+fnName[0].toUpperCase()+fnName.slice(1)] = eval("(function("+a1+"){var self=this;return sync(self.$$"+fnName+"("+a1+"))})");
+    };
+};
+
+// create automatic $$ and sync functions for all functions if it has a callback param
+/* use
+ var a = yield sync( function(cb) { return nosql.count( "", cb ) } )
+ or
+ var a = yield sync(nosql.$$count(""))
+ or
+ var a = yield nosql.syncCount("")
+ */
+addGenarators([
+    Database.prototype
+    ,Views.prototype
+    ,Stored.prototype
+    ,Binary.prototype
+    ,Changelog.prototype
+    ,FileReader.prototype
+]);
 
 exports.database = Database;
 exports.load = exports.open = exports.nosql = exports.init = function(filename, directory, changes) {
