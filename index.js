@@ -388,6 +388,7 @@ Database.prototype.all = function(fnMap, fnCallback, itemSkip, itemTake) {
 	return this.read(fnMap, fnCallback, itemSkip, itemTake, false, 'all');
 };
 
+
 /*
 	Read one document from database
 	@fnMap {Function} :: must return {Object}
@@ -403,6 +404,7 @@ Database.prototype.one = function(fnMap, fnCallback) {
 	return this.read(fnMap, cb, 0, 1, false, 'one');
 };
 
+
 /*
 	Read TOP "x" documents from database
 	@fnMap {Function} :: IMPORTANT: you must return {Object}
@@ -412,6 +414,7 @@ Database.prototype.one = function(fnMap, fnCallback) {
 Database.prototype.top = function(max, fnMap, fnCallback) {
 	return this.read(fnMap, fnCallback, 0, max, false, 'top');
 };
+
 
 /*
 	Count documents
@@ -561,6 +564,7 @@ Database.prototype.sort = function(fnMap, fnSort, fnCallback, itemSkip, itemTake
 	self.each(onItem, onCallback);
 	return self;
 };
+
 
 /*
 	Clear database
@@ -988,6 +992,7 @@ Database.prototype.remove = function(fnFilter, fnCallback, changes) {
 	self.update(filter, fnCallback, changes, 'remove');
 	return self;
 };
+
 
 Database.prototype.pause = function() {
 	var self = this;
@@ -1807,6 +1812,7 @@ Stored.prototype.execute = function(name, params, fnCallback, changes) {
 	return self;
 };
 
+
 // ========================================================================
 // BINARY PROTOTYPE
 // ========================================================================
@@ -2398,20 +2404,17 @@ function dimensionPNG(buffer) {
 	return { width: u32(buffer, 16), height: u32(buffer, 16 + 4) };
 };
 
-// -------------------------------------------------
 // MIT
 // Written by https://github.com/evmek
-// -------------------------------------------------
 function getArgumentsNames(fn) {
     var a = /\(([\s\S]*?)\)/.exec(fn)[1].trim();
     if (a.length===0) return [];
     return a.split(/[ ,\n\r\t]+/);
 };
 
-// from the U.sync2 in total.js
+// from the U.sync in total.js
 function sync(fn, owner) {
     return function() {
-
         var params;
         var callback;
         var executed = false;
@@ -2438,25 +2441,23 @@ function sync(fn, owner) {
     };
 };
 
+// MIT
+// Written by https://github.com/evmek
+function addGenarators(base,cbName){
+    if(!cbName)cbName="fnCallback";
 
-var roots = [
-    Database.prototype
-    ,Views.prototype
-    ,Stored.prototype
-    ,Binary.prototype
-    ,Changelog.prototype
-    ,FileReader.prototype
-];
+    if(Array.isArray(base)){
+        base.forEach(function(i){
+            addGenarators(i,cbName);
+        });
+        return;
+    };
 
-roots.forEach(function(base){
-    Object.keys(base).forEach(function(p){
-        addGenarator(base,p,"fnCallback");
-    });
-});
-function addGenarator(base,fnName,cbName){
-    if(Object.getOwnPropertyDescriptor(base,fnName)["value"] == null  ) return ;
+    for(var fnName in base){
+        if(!base.hasOwnProperty(fnName)) continue;
+        if(Object.getOwnPropertyDescriptor(base,fnName)["value"] == null ) continue ;
+        if(typeof base[fnName] !== "function")  continue;
 
-    if( (base.hasOwnProperty(fnName) ) && (typeof base[fnName] === "function")  ) {
         var a = getArgumentsNames(base[fnName]);
         var has = a.indexOf(cbName);
         if (has<0) return ;
@@ -2465,19 +2466,28 @@ function addGenarator(base,fnName,cbName){
         a.splice(has,1);
         var a1 = a.join(",") ;
 
-        // add "genarate functions" for good callback
-        // base.fn(p1,..,callback,...,pN)   =>   base.$$fn(p1,...,pN)(callback)
         base["$$" + fnName] = eval("(function(" + a1 + "){var self=this;return function(" + cbName + "){return self." + fnName + "(" + a2 + ")}})");
-		
-		// genarate sync functions for yield
-        // var result = yield sync( base.$$fn() )   =>   var result = yield base.syncFn()
+
         base["sync"+fnName[0].toUpperCase()+fnName.slice(1)] = eval("(function("+a1+"){var self=this;return sync(self.$$"+fnName+"("+a1+"))})");
-
-    }
+    };
 };
-// -------------------------------------------------
 
-
+// create automatic $$ and sync functions for all functions if it has a callback param
+/* use
+ var a = yield sync( function(cb) { return nosql.count( "", cb ) } )
+ or
+ var a = yield sync(nosql.$$count(""))
+ or
+ var a = yield nosql.syncCount("")
+ */
+addGenarators([
+    Database.prototype
+    ,Views.prototype
+    ,Stored.prototype
+    ,Binary.prototype
+    ,Changelog.prototype
+    ,FileReader.prototype
+]);
 
 exports.database = Database;
 exports.load = exports.open = exports.nosql = exports.init = function(filename, directory, changes) {
