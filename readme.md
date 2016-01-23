@@ -233,7 +233,7 @@ var map = function(doc) {
 };
 
 nosql.all(map, callback);
-nosql.one(map, function(doc) {});
+nosql.one(map, function(err, doc) {});
 nosql.top(5, map, callback);
 nosql.each(function(doc, offset) {});
 
