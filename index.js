@@ -2,7 +2,7 @@
  * @module NoSQL Embedded Database
  * @author Peter Širka <petersirka@gmail.com>
  * @copyright Peter Širka 2012-2016
- * @version 3.1.5
+ * @version 3.1.0
  */
 
 'use strict';
