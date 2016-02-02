@@ -258,7 +258,7 @@ nosql.remove(filter, callback);
 
 // IMPORTANT:
 // A created view is stored in file and the database automatically performs its update.
-// nosql.views.create(name, fnMap, fnSort, [fnCallback], [fnUpdate], [changes]);
+// nosql.views.create(name, fnMap, fnSort, [fnCallback], [fnUpdate], [changes], [helperValue]);
 // nosql.views.drop(name, [fnCallback], [changes]);
 // ============================================================================
 
