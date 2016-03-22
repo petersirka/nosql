@@ -225,7 +225,7 @@ var callback = function(err, selected) {
 	// use Array.sort() function
 
 	console.log('Users between 25 and 35 years old: ' + users.join(', '));
-});
+};
 
 var map = function(doc) {
 	if (doc.age > 24 && doc.age < 36)
