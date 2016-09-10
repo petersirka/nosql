@@ -2,7 +2,7 @@
  * @module NoSQL Embedded Database
  * @author Peter Širka <petersirka@gmail.com>
  * @copyright Peter Širka 2012-2016
- * @version 3.1.2
+ * @version 3.1.3
  */
 
 'use strict';
@@ -11,7 +11,7 @@ var fs = require('fs');
 var path = require('path');
 var events = require('events');
 
-var VERSION = 'v3.1.2';
+var VERSION = 'v3.1.3';
 var STATUS_UNKNOWN = 0;
 var STATUS_READING = 1;
 var STATUS_WRITING = 2;
@@ -745,7 +745,7 @@ Database.prototype.drop = function(fnCallback) {
 			return;
 		}
 
-		fn.unlink(self.filenameMeta, noop);
+		fs.unlink(self.filenameMeta, noop);
 		fs.unlink(self.filename, function(err) {
 
 			if (err)

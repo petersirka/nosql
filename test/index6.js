@@ -1,6 +1,8 @@
 var fs = require('fs');
-var filename = '/users/petersirka/desktop/test/paste_db';
-var directory = '/users/petersirka/desktop/test/binary_files';
+var os = require('os');
+var path = require('path');
+var filename = path.join(os.tmpdir(), "test");
+var directory = path.join(os.tmpdir(), "binary_files");
 var nosql = require('../index');
 var db = nosql.load(filename, directory, true);
 var assert = require('assert');
@@ -28,10 +30,10 @@ fs.readFile('/users/petersirka/desktop/a.png', function(err, data) {
 });
 */
 
-db.binary.read('1388077627679gsr1kyb9', function(err, stream, info) {
-	console.log(info);
-	stream.pipe(fs.createWriteStream('/users/petersirka/desktop/bbb.png'));
-});
+// db.binary.read('1388077627679gsr1kyb9', function(err, stream, info) {
+	// console.log(info);
+	// stream.pipe(fs.createWriteStream('/users/petersirka/desktop/bbb.png'));
+// });
 
 
 // 1388073922148i1wcdi

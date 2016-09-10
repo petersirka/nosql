@@ -6,13 +6,13 @@ var nosql = require('../index');
 var db = nosql.load(filename);
 var assert = require('assert');
 
-var write = true;
-var read = true;
-var remove = true;
+// it should be possible to drop the db
+db.drop(function (err) {
+    assert(!err);
+    db.all(function (doc) {
+        return doc;
+    }, function (err, docs) {
+        assert(docs.length === 0);
+    });
 
-var indexComplete = 0;
-var indexInsert = 0;
-
-db.all(function(docs, count) {
-    console.log(docs, count);
 });
