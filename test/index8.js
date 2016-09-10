@@ -7,12 +7,16 @@ var db = nosql.load(filename);
 var assert = require('assert');
 
 // it should be possible to drop the db
-db.drop(function (err) {
+db.insert({ hello: "world" }, function (err) {
     assert(!err);
-    db.all(function (doc) {
-        return doc;
-    }, function (err, docs) {
-        assert(docs.length === 0);
+    db.drop(function (err) {
+        assert(!err);
+        db.all(function (doc) {
+            return doc;
+        }, function (err, docs) {
+            assert(docs.length === 0);
+        });
+
     });
 
 });
