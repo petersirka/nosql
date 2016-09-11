@@ -1,4 +1,6 @@
-var filename = '/users/petersirka/desktop/test/aaa.nosql';
+var os = require('os');
+var path = require('path');
+var filename = path.join(os.tmpdir(), "test");
 var nosql = require('../index');
 var db = nosql.load(filename);
 

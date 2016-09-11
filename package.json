@@ -1,15 +1,15 @@
 {
     "name": "nosql",
-    "version": "3.1.1",
+    "version": "3.1.3",
     "description": "NoSQL embedded database for small node.js projects (supports insert, update, remove, views, drop, stored)",
     "main": "./index.js",
     "keywords": [ "nosql", "database", "embed", "embedded", "db", "binary"],
     "engines": {
-        "node": ">=0.8.0"
+        "node": ">=0.9.9"
     },
     "readmeFilename": "readme.md",
     "scripts": {
-        "test": "echo \"Error: no test specified\" && exit 1"
+        "test": "for file in `ls test`; do node \"test/$file\"; done"
     },
     "repository": {
         "type": "git",
