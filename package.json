@@ -13,7 +13,7 @@
         "url": "https://github.com/petersirka/nosql.git"
     },
     "dependencies": {
-        "total.js": "latest",
+        "total.js": "latest"
     },
     "author": {
         "name": "Peter Širka"
