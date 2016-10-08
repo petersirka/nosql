@@ -1,19 +1,19 @@
 {
     "name": "nosql",
-    "version": "3.2.0",
-    "description": "NoSQL embedded database for small node.js projects (supports insert, update, remove, views, drop, stored)",
+    "version": "4.0.0",
+    "description": "NoSQL embedded database for small Node.js projects (supports insert, update, remove, drop, views, binary files)",
     "main": "./index.js",
     "keywords": [ "nosql", "database", "embed", "embedded", "db", "binary"],
     "engines": {
         "node": ">=0.9.9"
     },
     "readmeFilename": "readme.md",
-    "scripts": {
-        "test": "for file in `ls test`; do node \"test/$file\"; done"
-    },
     "repository": {
         "type": "git",
         "url": "https://github.com/petersirka/nosql.git"
+    },
+    "dependencies": {
+        "total.js": "latest",
     },
     "author": {
         "name": "Peter Širka"
