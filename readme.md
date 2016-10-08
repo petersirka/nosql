@@ -1,7 +1,7 @@
 Node.js NoSQL embedded database
 ===============================
 
-[![NPM version][npm-version-image]][npm-url] [![NPM quality][npm-quality]](http://packagequality.com/#?package=nosql) [![NPM downloads][npm-downloads-image]][npm-url] [![MIT License][license-image]][license-url] [![Build Status][travis-image]][travis-url]
+[![NPM version][npm-version-image]][npm-url] [![NPM quality][npm-quality]](http://packagequality.com/#?package=nosql) [![NPM downloads][npm-downloads-image]][npm-url] [![MIT License][license-image]][license-url]
 
 ---
 
@@ -10,6 +10,7 @@ __IMPORTANT__: the new version __v4.0__ has new methods than older version. The 
 ---
 
 * __NEW__: [Online NoSQL embedded database explorer](https://nosql.totaljs.com)
+* [__Documentation__](https://docs.totaljs.com/latest/en.html#api~Database)
 * Supports views
 * Supports backuping with filtering
 * Supports binary files
