@@ -1,3 +1,5 @@
+require('total.js');
+
 const Nosql = require('total.js/nosql');
 const Path = require('path');
 
