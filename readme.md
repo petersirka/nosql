@@ -38,7 +38,7 @@ var db = NoSQL.load('/path/to/datbase.nosql');
 
 // db === Database instance <https://docs.totaljs.com/latest/en.html#api~Database>
 
-db.find().make(function(fitler) {
+db.find().make(function(filter) {
 	filter.where('age', '>', 20);
 	filter.where('removed', false);
 	filter.callback(function() {
