@@ -16,15 +16,11 @@ __IMPORTANT__: the new version __v4.0__ has new methods than older version. The 
 * Supports binary files
 * Supports simple filtering
 * [News on Twitter - @totalframework](https://twitter.com/totalframework)
-* Uses [Total.js framework](http://www.totaljs.com)
+* [Total.js framework](http://www.totaljs.com) uses NoSQL embedded database
 
 ## Installation
 
 ```
-$ sudo npm install -g nosql
-
-// or
-
 $ npm install nosql
 ```
 
