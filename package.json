@@ -5,7 +5,7 @@
     "main": "./index.js",
     "keywords": [ "nosql", "database", "embed", "embedded", "db", "binary"],
     "engines": {
-        "node": ">=0.9.9"
+        "node": ">=4.0.0"
     },
     "readmeFilename": "readme.md",
     "repository": {
