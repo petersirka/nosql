@@ -98,10 +98,24 @@ Database.prototype.insert = function(doc) {
 	return builder;
 };
 
-Database.prototype.update = function(doc) {
+Database.prototype.update = function(doc, insert) {
 	var self = this;
 	var builder = new DatabaseBuilder();
-	self.pending_update.push({ builder: builder, doc: doc, count: 0 });
+	self.pending_update.push({ builder: builder, doc: doc.$clean ? doc.$clean() : doc, count: 0, insert: insert });
+	setImmediate(() => self.next(2));
+	return builder;
+};
+
+Database.prototype.modify = function(doc, insert) {
+	var self = this;
+	var builder = new DatabaseBuilder();
+	var data = doc.$clean ? doc.$clean() : doc;
+	var keys = Object.keys(data);
+
+	if (!keys.length)
+		return builder;
+
+	self.pending_update.push({ builder: builder, doc: doc, count: 0, keys: keys, insert: insert });
 	setImmediate(() => self.next(2));
 	return builder;
 };
@@ -147,20 +161,6 @@ Database.prototype.free = function() {
 	// @notsupported
 	// delete framework.databases[self.name];
 	return self;
-};
-
-Database.prototype.modify = function(doc) {
-	var self = this;
-	var builder = new DatabaseBuilder();
-	var data = doc.$clean ? doc.$clean() : doc;
-	var keys = Object.keys(data);
-
-	if (!keys.length)
-		return builder;
-
-	self.pending_update.push({ builder: builder, doc: doc, count: 0, keys: keys });
-	setImmediate(() => self.next(2));
-	return builder;
 };
 
 Database.prototype.remove = function(filename) {
@@ -409,7 +409,10 @@ Database.prototype.$update = function() {
 
 			for (var i = 0; i < length; i++) {
 				var item = filter[i];
-				item.builder.$callback && item.builder.$callback(errorhandling(err, item.builder, item.count), item.count);
+				if (item.insert && !item.count)
+					self.insert(item.insert).$callback = item.builder.$callback;
+				else
+					item.builder.$callback && item.builder.$callback(errorhandling(err, item.builder, item.count), item.count);
 			}
 
 			setImmediate(function() {
