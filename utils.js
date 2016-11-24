@@ -569,9 +569,10 @@ Array.prototype.quicksort = Array.prototype.orderBy = function(name, asc, maxlen
 			type = 3;
 			break;
 		default:
-			if (!exports.isDate(field))
+			if (field instanceof Date)
+				type = 4;
+			else
 				return self;
-			type = 4;
 			break;
 	}
 
@@ -706,6 +707,10 @@ Array.prototype.wait = function(onItem, callback, thread) {
 	return self;
 };
 
+String.prototype.parseInt2 = function(def) {
+	var num = this.match(regexpINTEGER);
+	return num ? +num : def || 0;
+};
 
 // =============================================
 // FAST QUICK SORT IMPLEMENTATION
