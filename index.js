@@ -112,7 +112,7 @@ Database.prototype.insert = function(doc) {
 	var builder = new DatabaseBuilder2();
 	var json = doc.$clean ? doc.$clean() : doc;
 	self.pending_append.push({ doc: JSON.stringify(json), builder: builder });
-	self.next(1);
+	setImmediate(() => self.next(1));
 	self.emit('insert', json);
 	return builder;
 };
