@@ -5,7 +5,7 @@ Node.js NoSQL embedded database
 
 ---
 
-__IMPORTANT__: the new version __v4.0__ has new methods than older version. The structure of database file __is same__.
+__IMPORTANT__: the new version __v5.0__ has new methods than older version. The structure of database file __is same__.
 
 ---
 
