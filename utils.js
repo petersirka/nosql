@@ -609,7 +609,7 @@ Array.prototype.quicksort = Array.prototype.orderBy = function(name, asc, maxlen
 			break;
 	}
 
-	quicksort(self, function(a, b) {
+	shellsort(self, function(a, b) {
 
 		var va = name ? a[name] : a;
 		var vb = name ? b[name] : b;
@@ -746,112 +746,28 @@ String.prototype.parseInt2 = function(def) {
 };
 
 // =============================================
-// FAST QUICK SORT IMPLEMENTATION
+// SHELL SORT IMPLEMENTATION OF ALGORITHM
 // =============================================
 
-function swap(ary, a, b) {
-	var t = ary[a];
-	ary[a] = ary[b];
-	ary[b] = t;
-}
-
-function insertion_sort(ary, comparer) {
-	for(var i=1,l=ary.length;i<l;i++) {
-		var value = ary[i];
-		for(var j=i - 1;j>=0;j--) {
-			// if(ary[j] <= value)
-			if(comparer(value, ary[j], true))
-				break;
-			ary[j+1] = ary[j];
-		}
-		ary[j+1] = value;
-	}
-	return ary;
-}
-
-function inplace_quicksort_partition(ary, start, end, pivotIndex, comparer) {
-	var i = start, j = end;
-	var pivot = ary[pivotIndex];
-	while(true) {
-		while(comparer(pivot, ary[i])) {i++};
-		j--;
-		while(comparer(ary[j], pivot)) {j--};
-		if(!(i < j))
-			return i;
-		swap(ary,i,j);
-		i++;
-	}
-}
-
-function fast_quicksort(ary, comparer) {
-	var stack = [];
-	var entry = [0,ary.length,2 * Math.floor(Math.log(ary.length)/Math.log(2))];
-	stack.push(entry);
-	while(stack.length) {
-		entry = stack.pop();
-		var start = entry[0];
-		var end = entry[1];
-		var depth = entry[2];
-
-		if (!depth) {
-			ary = shell_sort_bound(ary, start, end, comparer);
-			continue;
-		}
-
-		depth--;
-
-		var pivot = Math.round((start + end) / 2);
-		var pivotNewIndex = inplace_quicksort_partition(ary,start,end, pivot, comparer);
-
-		if (end - pivotNewIndex > 16) {
-			entry = [pivotNewIndex,end,depth];
-			stack.push(entry);
-		}
-
-		if (pivotNewIndex - start > 16) {
-			entry = [start,pivotNewIndex,depth];
-			stack.push(entry);
+function _shellInsertionSort(list, length, gapSize, fn) {
+	var temp, i, j;
+	for (i = gapSize; i < length; i += gapSize ) {
+		j = i;
+		while(j > 0 && fn(list[j - gapSize], list[j]) === 1) {
+			temp = list[j];
+			list[j] = list[j - gapSize];
+			list[j - gapSize] = temp;
+			j -= gapSize;
 		}
 	}
+};
 
-	ary = insertion_sort(ary, comparer);
-	return ary;
-}
-
-function shell_sort_bound(ary, start, end, comparer) {
-	var inc = Math.round((start + end) / 2), i, j, t;
-	while (inc >= start) {
-		for (i = inc; i < end; i++) {
-			t = ary[i];
-			j = i;
-			while (j >= inc && comparer(ary[j - inc], t)) {
-				ary[j] = ary[j - inc];
-				j -= inc;
-			}
-			ary[j] = t;
-		}
-		inc = Math.round(inc / 2.2);
+function shellsort(arr, fn) {
+	var length = arr.length;
+	var gapSize = Math.floor(length / 2);
+	while(gapSize) {
+		_shellInsertionSort(arr, length, gapSize, fn);
+		gapSize = Math.floor(gapSize / 2);
 	}
-
-	return ary;
-}
-
-function comparer_asc(index, eq) {
-	if (eq)
-		return index === 1 || index === 0 ? true : false;
-	return index === 1;
-}
-
-function comparer_desc(index, eq) {
-	if (eq)
-		return index === -1 || index === 0 ? true : false;
-	return index === -1;
-}
-
-function quicksort(arr, comparer, desc) {
-	return fast_quicksort(arr, function(a, b, eq) {
-		if (desc)
-			return comparer_desc(comparer(a, b), eq);
-		return comparer_asc(comparer(a, b), eq);
-	});
-}
+	return arr;
+};
