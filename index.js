@@ -2208,7 +2208,7 @@ Binary.prototype.insert = function(name, buffer, callback) {
 	}
 
 	if (typeof(buffer) === 'string')
-		buffer = new Buffer(buffer, 'base64');
+		buffer = framework_utils.createBuffer(buffer, 'base64');
 	else if (buffer.resume)
 		return self.insert_stream(null, name, type, buffer, callback);
 
@@ -2238,7 +2238,7 @@ Binary.prototype.insert = function(name, buffer, callback) {
 		dimension = { width: 0, height: 0 };
 
 	var h = { name: name, size: size, type: type, width: dimension.width, height: dimension.height, created: F.created };
-	var header = new Buffer(BINARY_HEADER_LENGTH);
+	var header = framework_utils.createBufferSize(BINARY_HEADER_LENGTH);
 	header.fill(' ');
 	header.write(JSON.stringify(h));
 
@@ -2260,7 +2260,7 @@ Binary.prototype.insert_stream = function(id, name, type, stream, callback) {
 	self.check();
 
 	var h = { name: name, size: 0, type: type, width: 0, height: 0 };
-	var header = new Buffer(BINARY_HEADER_LENGTH);
+	var header = framework_utils.createBufferSize(BINARY_HEADER_LENGTH);
 	header.fill(' ');
 	header.write(JSON.stringify(h));
 
@@ -2295,7 +2295,7 @@ Binary.prototype.update = function(id, name, buffer, callback) {
 	}
 
 	if (typeof(buffer) === 'string')
-		buffer = new Buffer(buffer, 'base64');
+		buffer = framework_utils.createBuffer(buffer, 'base64');
 
 	if (buffer.resume)
 		return this.insert_stream(id, name, type, buffer, callback);
@@ -2327,7 +2327,7 @@ Binary.prototype.update = function(id, name, buffer, callback) {
 		dimension = { width: 0, height: 0 };
 
 	var h = { name: name, size: size, type: type, width: dimension.width, height: dimension.height, created: new Date() };
-	var header = new Buffer(BINARY_HEADER_LENGTH);
+	var header = framework_utils.createBufferSize(BINARY_HEADER_LENGTH);
 	header.fill(' ');
 	header.write(JSON.stringify(h));
 
@@ -2354,7 +2354,7 @@ Binary.prototype.read = function(id, callback) {
 
 	stream.on('error', err => callback(err));
 	stream.on('data', function(buffer) {
-		var json = new Buffer(buffer, 'binary').toString('utf8').replace(REG_CLEAN, '');
+		var json = framework_utils.createBuffer(buffer, 'binary').toString('utf8').replace(REG_CLEAN, '');
 		stream = Fs.createReadStream(filename, { start: BINARY_HEADER_LENGTH });
 		callback(null, stream, JSON.parse(json));
 	});
@@ -2440,7 +2440,7 @@ Binary.prototype.all = function(callback) {
 			var stream = Fs.createReadStream(Path.join(self.directory, item), { start: 0, end: BINARY_HEADER_LENGTH - 1, encoding: 'binary' });
 
 			stream.on('data', function(buffer) {
-				var json = JSON.parse(new Buffer(buffer, 'binary').toString('utf8').replace(REG_CLEAN, ''), jsonparser);
+				var json = JSON.parse(framework_utils.createBuffer(buffer, 'binary').toString('utf8').replace(REG_CLEAN, ''), jsonparser);
 				if (json) {
 					json.id = item.substring(l, item.length - le);
 					output.push(json);
