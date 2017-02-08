@@ -131,7 +131,7 @@ Database.prototype.insert = function(doc, unique) {
 	}
 
 	builder = new DatabaseBuilder2();
-	var json = framework_builders.isSchema(doc) ? doc.$clean() : doc;
+	var json = typeof(doc.$clean) === 'function' ? doc.$clean() : doc;
 	self.pending_append.push({ doc: JSON.stringify(json), builder: builder });
 	setImmediate(() => self.next(1));
 	self.emit('insert', json);
@@ -650,9 +650,7 @@ Database.prototype.$reader = function() {
 		return self;
 	}
 
-	var index = 0;
 	var list = self.pending_reader.splice(0);
-
 	if (INMEMORY[self.name])
 		self.$reader2_inmemory('#', list, () => self.next(0));
 	else
@@ -958,7 +956,6 @@ Database.prototype.$views = function() {
 	}
 
 	var response = [];
-	var writers = [];
 
 	for (var i = 0; i < length; i++)
 		response.push({ response: [], name: views[i], builder: self.views[views[i]], count: 0, counter: 0 });
@@ -1114,7 +1111,6 @@ Database.prototype.$remove = function() {
 	reader.on('data', framework_utils.streamer(NEWLINE, function(value, index) {
 
 		var json = JSON.parse(value.trim());
-		var is = false;
 		var removed = false;
 
 		for (var i = 0; i < length; i++) {
@@ -1178,7 +1174,6 @@ Database.prototype.$remove_inmemory = function() {
 
 		for (var j = 0, jl = data.length; j < jl; j++) {
 			var json = data[j];
-			var is = false;
 			var removed = false;
 
 			for (var i = 0; i < length; i++) {
@@ -1236,7 +1231,10 @@ Database.prototype.$drop = function() {
 		});
 	} catch (e) {}
 
-	remove.wait((filename, next) => Fs.unlink(filename, next), () => self.next(0), 5);
+	remove.wait((filename, next) => Fs.unlink(filename, next), function() {
+		self.next(0);
+		self.free();
+	}, 5);
 
 	Object.keys(self.inmemory).forEach(function(key) {
 		self.inmemory[key] = undefined;

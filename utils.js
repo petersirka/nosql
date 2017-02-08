@@ -163,11 +163,11 @@ exports.streamer = function(beg, end, callback) {
 	}
 
 	var indexer = 0;
-	var buffer = new Buffer(0);
+	var buffer = exports.createBufferSize(0);
 
-	beg = new Buffer(beg, 'utf8');
+	beg = exports.createBuffer(beg, 'utf8');
 	if (end)
-		end = new Buffer(end, 'utf8');
+		end = exports.createBuffer(end, 'utf8');
 
 	if (!end) {
 		var length = beg.length;
