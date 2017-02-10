@@ -9,6 +9,11 @@ __IMPORTANT__: the new version __v5.0__ has new methods than older version. The 
 
 ---
 
+- [__Live chat with professional support__](https://messenger.totaljs.com)
+- [__HelpDesk with professional support__](https://helpdesk.totaljs.com)
+
+---
+
 * __NEW__: [Online NoSQL embedded database explorer](https://nosql.totaljs.com)
 * [__Documentation__](https://docs.totaljs.com/latest/en.html#api~Database)
 * Supports views
