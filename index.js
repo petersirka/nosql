@@ -21,7 +21,7 @@
 
 /**
  * @module NoSQL
- * @version 2.4.0
+ * @version 2.5.0
  */
 
 'use strict';
@@ -2515,7 +2515,7 @@ function compare_not(doc, index, item) {
 
 function compare_eq_date(doc, index, item) {
 	var val = doc[item.name]
-	return val ? item.value === (val instanceof Date ? val : new Date(val)) : false;
+	return val ? item.value.getTime() === (val instanceof Date ? val : new Date(val)).getTime() : false;
 }
 
 function compare_lt_date(doc, index, item) {
