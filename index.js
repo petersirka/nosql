@@ -29,6 +29,7 @@
 const Fs = require('fs');
 const Path = require('path');
 const Events = require('events');
+const sof = { 0xc0: true, 0xc1: true, 0xc2: true, 0xc3: true, 0xc5: true, 0xc6: true, 0xc7: true, 0xc9: true, 0xca: true, 0xcb: true, 0xcd: true, 0xce: true, 0xcf: true };
 
 const EXTENSION = '.nosql';
 const EXTENSION_BINARY = '.nosql-binary';
@@ -41,6 +42,7 @@ const REGEXP_SVG = /(width=\"\d+\")+|(height=\"\d+\")+/g;
 const EMPTYARRAY = [];
 const EMPTYOBJECT = {};
 const INMEMORY = {};
+const TMP = {};
 
 Object.freeze(EMPTYARRAY);
 Object.freeze(EMPTYOBJECT);
@@ -127,7 +129,7 @@ Database.prototype.insert = function(doc, unique) {
 			return builder;
 		};
 
-		return self;
+		return builder;
 	}
 
 	builder = new DatabaseBuilder2();
@@ -389,7 +391,7 @@ Database.prototype.$save = function(view) {
 			filename = filename.replace(/\.nosql/, '#' + view + '.nosql');
 
 		Fs.writeFile(filename, builder.join(NEWLINE) + NEWLINE, NOOP);
-	}, 50);
+	}, 50, 100);
 	return self;
 };
 
@@ -419,7 +421,7 @@ Database.prototype.$inmemory = function(view, callback) {
 			try {
 				item = JSON.parse(item.trim(), jsonparser);
 				item && self.inmemory[view].push(item);
-			} catch (e) {};
+			} catch (e) {}
 		}
 
 		callback();
@@ -796,6 +798,7 @@ Database.prototype.$reader2 = function(filename, items, callback) {
 					item.response.random();
 				else
 					item.response.sort(builder.$sort);
+
 				if (builder.$skip && builder.$take)
 					item.response = item.response.splice(builder.$skip, builder.$take);
 				else if (builder.$skip)
@@ -914,6 +917,7 @@ Database.prototype.$reader2_inmemory = function(name, items, callback) {
 					item.response.random();
 				else
 					item.response.sort(builder.$sort);
+
 				if (builder.$skip && builder.$take)
 					item.response = item.response.splice(builder.$skip, builder.$take);
 				else if (builder.$skip)
@@ -1135,7 +1139,7 @@ Database.prototype.$remove = function() {
 	}));
 
 	CLEANUP(writer, function() {
-		Fs.rename(self.filenameTemp, self.filename, function(err) {
+		Fs.rename(self.filenameTemp, self.filename, function() {
 
 			for (var i = 0; i < length; i++) {
 				var item = filter[i];
@@ -1669,7 +1673,7 @@ DatabaseBuilder.prototype.limit = function(count) {
 };
 
 DatabaseBuilder.prototype.page = function(page, limit) {
-	this.skip(page * limit)
+	this.skip(page * limit);
 	return this.take(limit);
 };
 
@@ -1753,7 +1757,7 @@ DatabaseBuilder.prototype.fields = function() {
 	for (var i = 0, length = arguments.length; i < length; i++)
 		this.$fields.push(arguments[i]);
 	return this;
-}
+};
 
 DatabaseBuilder.prototype.prepare = function(fn) {
 	this.$prepare = fn;
@@ -1764,7 +1768,7 @@ function Counter(db) {
 	this.TIMEOUT = 30000;
 	this.db = db;
 	this.cache;
-	this.timeout;
+	this.key = 'nosql' + db.name.hash();
 	this.type = 0; // 1 === saving, 2 === reading
 }
 
@@ -1784,17 +1788,14 @@ Counter.prototype.inc = Counter.prototype.hit = function(id, count) {
 		return self;
 	}
 
-	if (!self.cache)
-		self.cache = {};
+	!self.cache && (self.cache = {});
 
 	if (self.cache[id])
 		self.cache[id] += count || 1;
 	else
 		self.cache[id] = count || 1;
 
-	if (!self.timeout)
-		self.timeout = setTimeout(() => self.save(), self.TIMEOUT);
-
+	setTimeout2(self.key, () => self.save(), self.TIMEOUT, 5);
 	self.emit('hit', id, count || 1);
 	return self;
 };
@@ -1802,17 +1803,14 @@ Counter.prototype.inc = Counter.prototype.hit = function(id, count) {
 Counter.prototype.remove = function(id) {
 	var self = this;
 
-	if (!self.cache)
-		self.cache = {};
+	!self.cache && (self.cache = {});
 
 	if (id instanceof Array)
 		id.forEach(n => self.cache[n] = null);
 	else
 		self.cache[id] = null;
 
-	if (!self.timeout)
-		self.timeout = setTimeout(() => self.save(), self.TIMEOUT);
-
+	setTimeout2(self.key, () => self.save(), self.TIMEOUT, 5);
 	self.emit('remove', id);
 	return self;
 };
@@ -2035,7 +2033,7 @@ function counter_parse_years(value) {
 
 	var keys = Object.keys(tmp);
 	for (var i = 0, length = keys.length; i < length; i++)
-	 	output.push({ year: +keys[i], value: tmp[keys[i]] });
+		output.push({ year: +keys[i], value: tmp[keys[i]] });
 
 	return output;
 }
@@ -2145,7 +2143,7 @@ Counter.prototype.save = function() {
 	reader.on('end', flush);
 
 	CLEANUP(writer, function() {
-		Fs.rename(filename + '-tmp', filename, function(err) {
+		Fs.rename(filename + '-tmp', filename, function() {
 			clearTimeout(self.timeout);
 			self.timeout = 0;
 			self.type = 0;
@@ -2307,17 +2305,17 @@ Binary.prototype.update = function(id, name, buffer, callback) {
 
 	switch (ext) {
 		case 'gif':
-			dimension = framework_image.measureGIF(buffer);
+			dimension = measureGIF(buffer);
 			break;
 		case 'png':
-			dimension = framework_image.measurePNG(buffer);
+			dimension = measurePNG(buffer);
 			break;
 		case 'jpg':
 		case 'jpeg':
-			dimension = framework_image.measureJPG(buffer);
+			dimension = measureJPG(buffer);
 			break;
 		case 'svg':
-			dimension = framework_image.measureSVG(buffer);
+			dimension = measureSVG(buffer);
 			break;
 	}
 
@@ -2326,10 +2324,12 @@ Binary.prototype.update = function(id, name, buffer, callback) {
 
 	var h = { name: name, size: size, type: type, width: dimension.width, height: dimension.height, created: new Date() };
 	var header = framework_utils.createBufferSize(BINARY_HEADER_LENGTH);
+	var key = self.db.name + '#' + id;
+
 	header.fill(' ');
 	header.write(JSON.stringify(h));
 
-	var stream = Fs.createWriteStream(Path.join(self.directory, id + EXTENSION_BINARY));
+	var stream = Fs.createWriteStream(Path.join(self.directory, key + EXTENSION_BINARY));
 	stream.write(header, 'binary');
 	stream.end(buffer);
 	CLEANUP(stream);
@@ -2386,7 +2386,7 @@ Binary.prototype.check = function() {
 
 	try {
 		Fs.mkdirSync(self.directory);
-	} catch (err) {};
+	} catch (err) {}
 
 	return self;
 };
@@ -2514,7 +2514,7 @@ function compare_not(doc, index, item) {
 }
 
 function compare_eq_date(doc, index, item) {
-	var val = doc[item.name]
+	var val = doc[item.name];
 	return val ? item.value.getTime() === (val instanceof Date ? val : new Date(val)).getTime() : false;
 }
 
@@ -2622,7 +2622,7 @@ function compare_datetype(type, eqtype, val, doc) {
 	}
 
 	return eqtype === '=' ? val === doc : eqtype === '>' ? val > doc : eqtype === '<' ? val < doc : eqtype === '>=' ? val >= doc : eqtype === '<=' ? val <= doc : val !== doc;
-};
+}
 
 function compare_eq_dtmonth(doc, index, item) {
 	return compare_datetype('month', '=', item.value, doc[item.name]);
@@ -2696,14 +2696,6 @@ function compare_not_dtday(doc, index, item) {
 	return compare_datetype('day', '!=', item.value, doc[item.name]);
 }
 
-function scalar_group(obj) {
-	var keys = Object.keys(obj);
-	var output = [];
-	for (var i = 0, length = keys.length; i < length; i++)
-		output.push({ key: keys[i], count: obj[i] });
-	return output;
-}
-
 function errorhandling(err, builder, response) {
 	if (err)
 		return err;
@@ -2739,7 +2731,7 @@ function CLEANUP(stream, callback) {
 		stream.on('end', fn);
 	else
 		stream.on('finish', fn);
-};
+}
 
 /**
  * Destroy the stream
@@ -2755,15 +2747,13 @@ function destroyStream(stream) {
 		if (typeof(stream.close) !== 'function')
 			return stream;
 		stream.on('open', function() {
-			if (typeof(this.fd) === 'number')
-				this.close();
+			typeof(this.fd) === 'number' && this.close();
 		});
 		return stream;
 	}
 	if (!(stream instanceof Stream))
 		return stream;
-	if (typeof(stream.destroy) === 'function')
-		stream.destroy();
+	typeof(stream.destroy) === 'function' && stream.destroy();
 	return stream;
 }
 
@@ -2817,7 +2807,7 @@ function listener(event, done) {
 		for (var i = 0; i < args.length; i++)
 			args[i] = arguments[i];
 		done(err, ee, event, args);
-	}
+	};
 }
 
 /*
@@ -2852,7 +2842,7 @@ function attachFinishedListener(msg, callback) {
 
 	function onSocket(socket) {
 		// remove listener
-		msg.removeListener('socket', onSocket)
+		msg.removeListener('socket', onSocket);
 
 		if (finished || eeMsg !== eeSocket)
 			return;
@@ -2868,7 +2858,7 @@ function attachFinishedListener(msg, callback) {
 	}
 
 	// wait for socket to be assigned
-	msg.on('socket', onSocket)
+	msg.on('socket', onSocket);
 
 	// node.js 0.8 patch
 	!msg.socket && patchAssignSocket(msg, onSocket);
@@ -2893,7 +2883,7 @@ function createListener(msg) {
 		if (!listener.queue)
 			return;
 		var queue = listener.queue;
-		listener.queue = null
+		listener.queue = null;
 		for (var i = 0, length = queue.length; i < length; i++)
 			queue[i](err, msg);
 	}
@@ -2921,7 +2911,7 @@ function isFinished(msg) {
 
 	// IncomingMessage
 	if (typeof msg.complete === 'boolean')
-		return Boolean(msg.upgrade || !socket || !socket.readable || (msg.complete && !msg.readable))
+		return Boolean(msg.upgrade || !socket || !socket.readable || (msg.complete && !msg.readable));
 }
 
 function u16(buf, o) {
@@ -2934,7 +2924,7 @@ function u32(buf, o) {
 
 function measureGIF(buffer) {
 	return { width: buffer[6], height: buffer[8] };
-};
+}
 
 // MIT
 // Written by TJ Holowaychuk
@@ -2967,7 +2957,7 @@ function measureJPG(buffer) {
 	}
 
 	return null;
-};
+}
 
 // MIT
 // Written by TJ Holowaychuk
@@ -2999,7 +2989,7 @@ function measureSVG(buffer) {
 	}
 
 	return { width: width, height: height };
-};
+}
 
 function unlink(arr, callback) {
 	var self = this;
@@ -3015,9 +3005,27 @@ function unlink(arr, callback) {
 	var filename = arr.shift();
 
 	if (filename)
-		Fs.unlink(filename, (err) => unlink(arr, callback));
+		Fs.unlink(filename, () => unlink(arr, callback));
 	else
 		callback && callback();
 
 	return self;
-};
+}
+
+function setTimeout2(name, fn, timeout, limit) {
+	var key = ':' + name;
+	if (limit > 0) {
+		var key2 = key + ':limit';
+		if (TMP[key2] >= limit)
+			return;
+		TMP[key2] = (TMP[key2] || 0) + 1;
+		TMP[key] && clearTimeout(TMP[key]);
+		return TMP[key] = setTimeout(function() {
+			TMP[key2] = undefined;
+			fn && fn();
+		}, timeout);
+	}
+
+	TMP[key] && clearTimeout(TMP[key]);
+	return TMP[key] = setTimeout(fn, timeout);
+}

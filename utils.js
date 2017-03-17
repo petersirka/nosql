@@ -19,12 +19,12 @@
 // OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE
 // USE OR OTHER DEALINGS IN THE SOFTWARE.
 
-const isWindows = require('os').platform().substring(0, 3).toLowerCase() === 'win';
 const MONTHS = ['January', 'February', 'March', 'April', 'May', 'Juny', 'July', 'August', 'September', 'October', 'November', 'December'];
 const DAYS = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
 const regexpTRIM = /^[\s]+|[\s]+$/g;
 const regexpDATEFORMAT = /yyyy|yy|M+|d+|HH|H|hh|h|mm|m|ss|s|a|ww|w/g;
 const regexpDiacritics = /[^\u0000-\u007e]/g;
+const regexpINTEGER = /(^\-|\s-)?[0-9]+/g;
 const DIACRITICSMAP = {};
 const NODEVERSION = parseFloat(process.version.toString().replace('v', '').replace(/\./g, ''));
 
@@ -396,7 +396,7 @@ Number.prototype.format = function(decimals, separator, separatorDecimal) {
 	return minus + output + (dec.length ? separatorDecimal + dec : '');
 };
 
-Date.prototype.format = function(format, resource) {
+Date.prototype.format = function(format) {
 
 	var self = this;
 	var half = false;
@@ -462,9 +462,7 @@ Date.prototype.format = function(format, resource) {
 				tmp.setHours(0, 0, 0);
 				tmp.setDate(tmp.getDate() + 4 - (tmp.getDay() || 7));
 				tmp = Math.ceil((((tmp - new Date(tmp.getFullYear(), 0, 1)) / 8.64e7) + 1) / 7);
-				if (key === 'ww')
-					return tmp.toString().padLeft(2, '0');
-				return tmp;
+				return key === 'ww' ? tmp.toString().padLeft(2, '0') : tmp;
 			case 'a':
 				var a = 'AM';
 				if (self.getHours() >= 12)
@@ -498,7 +496,7 @@ Array.prototype.random = function() {
 	var index = 0;
 	var old = 0;
 
-	self.sort(function(a, b) {
+	self.sort(function() {
 
 		var c = random[index++];
 
@@ -746,6 +744,23 @@ String.prototype.parseInt2 = function(def) {
 	return num ? +num : def || 0;
 };
 
+String.prototype.hash = function() {
+	return string_hash(this);
+};
+
+function string_hash(s) {
+	var hash = 0, i, char;
+	if (s.length === 0)
+		return hash;
+	var l = s.length;
+	for (i = 0; i < l; i++) {
+		char = s.charCodeAt(i);
+		hash = ((hash << 5) - hash) + char;
+		hash |= 0; // Convert to 32bit integer
+	}
+	return hash;
+}
+
 // =============================================
 // SHELL SORT IMPLEMENTATION OF ALGORITHM
 // =============================================
@@ -761,7 +776,7 @@ function _shellInsertionSort(list, length, gapSize, fn) {
 			j -= gapSize;
 		}
 	}
-};
+}
 
 function shellsort(arr, fn) {
 	var length = arr.length;
@@ -771,7 +786,7 @@ function shellsort(arr, fn) {
 		gapSize = Math.floor(gapSize / 2);
 	}
 	return arr;
-};
+}
 
 if (NODEVERSION > 699) {
 	exports.createBufferSize = (size) => Buffer.alloc(size || 0);
