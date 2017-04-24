@@ -109,6 +109,11 @@ Database.prototype.meta = function(name, value) {
 	return self;
 };
 
+function next_operation(self, type, builder) {
+	builder && builder.$sortinline();
+	self.next(type);
+}
+
 Database.prototype.insert = function(doc, unique) {
 	var self = this;
 	var builder;
@@ -135,7 +140,7 @@ Database.prototype.insert = function(doc, unique) {
 	builder = new DatabaseBuilder2();
 	var json = typeof(doc.$clean) === 'function' ? doc.$clean() : doc;
 	self.pending_append.push({ doc: JSON.stringify(json), builder: builder });
-	setImmediate(() => self.next(1));
+	setImmediate(next_operation, self, 1);
 	self.emit('insert', json);
 	return builder;
 };
@@ -148,7 +153,7 @@ Database.prototype.update = function(doc, insert) {
 	var self = this;
 	var builder = new DatabaseBuilder();
 	self.pending_update.push({ builder: builder, doc: doc.$clean ? doc.$clean() : doc, count: 0, insert: insert });
-	setImmediate(() => self.next(2));
+	setImmediate(next_operation, self, 2);
 	return builder;
 };
 
@@ -162,7 +167,7 @@ Database.prototype.modify = function(doc, insert) {
 		return builder;
 
 	self.pending_update.push({ builder: builder, doc: data, count: 0, keys: keys, insert: insert });
-	setImmediate(() => self.next(2));
+	setImmediate(next_operation, self, 2);
 	return builder;
 };
 
@@ -198,7 +203,7 @@ Database.prototype.backup = function(filename, remove) {
 Database.prototype.drop = function() {
 	var self = this;
 	self.pending_drops = true;
-	setImmediate(() => self.next(7));
+	setImmediate(next_operation, self, 7);
 	return self;
 };
 
@@ -225,7 +230,7 @@ Database.prototype.clear = Database.prototype.remove = function(filename) {
 		backup = new Backuper(backup);
 
 	self.pending_remove.push({ builder: builder, count: 0, backup: backup });
-	setImmediate(() => self.next(3));
+	setImmediate(next_operation, self, 3);
 	return builder;
 };
 
@@ -235,10 +240,10 @@ Database.prototype.find = function(view) {
 
 	if (view) {
 		self.pending_reader_view.push({ builder: builder, count: 0, counter: 0, view: view });
-		setImmediate(() => self.next(6));
+		setImmediate(next_operation, self, 6, builder);
 	} else {
-		self.pending_reader.push({ builder: builder, count: 0, counter: 0, view: view });
-		setImmediate(() => self.next(4));
+		self.pending_reader.push({ builder: builder, count: 0, counter: 0 });
+		setImmediate(next_operation, self, 4, builder);
 	}
 
 	return builder;
@@ -254,10 +259,10 @@ Database.prototype.count = function(view) {
 
 	if (view) {
 		self.pending_reader_view.push({ builder: builder, count: 0, view: view, type: 1 });
-		setImmediate(() => self.next(6));
+		setImmediate(next_operation, self, 6);
 	} else {
-		self.pending_reader.push({ builder: builder, count: 0, view: view, type: 1 });
-		setImmediate(() => self.next(4));
+		self.pending_reader.push({ builder: builder, count: 0, type: 1 });
+		setImmediate(next_operation, self, 4);
 	}
 
 	return builder;
@@ -270,10 +275,10 @@ Database.prototype.one = function(view) {
 
 	if (view) {
 		self.pending_reader_view.push({ builder: builder, count: 0, view: view });
-		setImmediate(() => self.next(6));
+		setImmediate(next_operation, self, 6, builder);
 	} else {
-		self.pending_reader.push({ builder: builder, count: 0, view: view });
-		setImmediate(() => self.next(4));
+		self.pending_reader.push({ builder: builder, count: 0 });
+		setImmediate(next_operation, self, 4, builder);
 	}
 
 	return builder;
@@ -286,10 +291,10 @@ Database.prototype.top = function(max, view) {
 
 	if (view) {
 		self.pending_reader_view.push({ builder: builder, count: 0, counter: 0, view: view });
-		setImmediate(() => self.next(6));
+		setImmediate(next_operation, self, 6, builder);
 	} else {
-		self.pending_reader.push({ builder: builder, count: 0, counter: 0, view: view });
-		setImmediate(() => self.next(4));
+		self.pending_reader.push({ builder: builder, count: 0, counter: 0 });
+		setImmediate(next_operation, self, 4, builder);
 	}
 
 	return builder;
@@ -358,7 +363,7 @@ Database.prototype.next = function(type) {
 
 	if (self.step !== type) {
 		self.step = 0;
-		setImmediate(() => self.next(0));
+		setImmediate(next_operation, self, 0);
 	}
 
 	return self;
@@ -369,7 +374,7 @@ Database.prototype.refresh = function() {
 	if (!self.views)
 		return self;
 	self.pending_views = true;
-	setImmediate(() => self.next(5));
+	setImmediate(next_operation, self, 5);
 	return self;
 };
 
