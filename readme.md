@@ -42,7 +42,7 @@ var db = NoSQL.load('/path/to/database.nosql');
 db.find().make(function(filter) {
     filter.where('age', '>', 20);
     filter.where('removed', false);
-    filter.callback(function() {
+    filter.callback(function(err, response) {
         console.log(err, response);
     });
 });
