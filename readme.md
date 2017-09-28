@@ -35,21 +35,20 @@ $ npm install nosql
 
 ```javascript
 var NoSQL = require('nosql');
-var db = NoSQL.load('/path/to/datbase.nosql');
+var db = NoSQL.load('/path/to/database.nosql');
 
 // db === Database instance <https://docs.totaljs.com/latest/en.html#api~Database>
 
 db.find().make(function(filter) {
-	filter.where('age', '>', 20);
-	filter.where('removed', false);
-	filter.callback(function() {
-		console.log(err, response);
-	});
+    filter.where('age', '>', 20);
+    filter.where('removed', false);
+    filter.callback(function() {
+        console.log(err, response);
+    });
 });
 ```
 
-
-## Contributors
+## Contributors
 
 - Author: [Peter Širka](https://github.com/petersirka/)
 
