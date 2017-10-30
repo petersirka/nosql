@@ -804,7 +804,7 @@ Database.prototype.$reader2 = function(filename, items, callback) {
 					if (!builder.$inlinesort || builder.$take !== item.response.length)
 						item.response.quicksort(builder.$sort.name, builder.$sort.asc);
 				} else if (builder.$sort === EMPTYOBJECT)
-					item.response.random();
+					item.response.randomize();
 				else
 					item.response.sort(builder.$sort);
 
@@ -970,7 +970,7 @@ Database.prototype.$reader2_inmemory = function(name, items, callback) {
 				if (builder.$sort.name)
 					item.response.quicksort(builder.$sort.name, builder.$sort.asc);
 				else if (builder.$sort === EMPTYOBJECT)
-					item.response.random();
+					item.response.randomize();
 				else
 					item.response.sort(builder.$sort);
 
@@ -1050,7 +1050,7 @@ Database.prototype.$views = function() {
 				if (builder.$sort.name)
 					item.response.quicksort(builder.$sort.name, builder.$sort.asc);
 				else if (builder.$sort === EMPTYOBJECT)
-					item.response.random();
+					item.response.randomize();
 				else
 					item.response.sort(builder.$sort);
 				if (builder.$skip && builder.$take)
@@ -1132,7 +1132,7 @@ Database.prototype.$views_inmemory = function() {
 				if (builder.$sort.name)
 					item.response.quicksort(builder.$sort.name, builder.$sort.asc);
 				else if (builder.$sort === EMPTYOBJECT)
-					item.response.random();
+					item.response.randomize();
 				else
 					item.response.sort(builder.$sort);
 				if (builder.$skip && builder.$take)

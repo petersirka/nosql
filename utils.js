@@ -489,37 +489,14 @@ String.prototype.isJSONDate = function() {
 	return l > 22 && l < 30 && this[l] === 'Z' && this[10] === 'T' && this[4] === '-' && this[13] === ':' && this[16] === ':';
 };
 
-Array.prototype.random = function() {
-
-	var self = this;
-	var random = (Math.floor(Math.random() * 100000000) * 10).toString();
-	var index = 0;
-	var old = 0;
-
-	self.sort(function() {
-
-		var c = random[index++];
-
-		if (c === undefined) {
-			c = random[0];
-			index = 0;
-		}
-
-		if (old > c) {
-			old = c;
-			return -1;
-		}
-
-		if (old === c) {
-			old = c;
-			return 0;
-		}
-
-		old = c;
-		return 1;
-	});
-
-	return self;
+Array.prototype.randomize = function() {
+	for (var i = this.length - 1; i > 0; i--) {
+		var j = Math.floor(Math.random() * (i + 1));
+		var temp = this[i];
+		this[i] = this[j];
+		this[j] = temp;
+	}
+	return this;
 };
 
 Array.prototype.limit = function(max, fn, callback, index) {
